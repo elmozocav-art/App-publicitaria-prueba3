@@ -12,7 +12,7 @@ st.title("🤖 Generador Publicitario Darpe")
 st.write("Haz clic en el botón de abajo para iniciar la magia.")
 
 # 2. Credenciales (Limpiadas y verificadas)
-OPENAI_API_KEY = "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"
+OPENAI_API_KEY = "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"
 INSTAGRAM_ID = "17841480726721041"
 FB_ACCESS_TOKEN = "IGAAMHxUfIVolBZAFpvdkdiTUdFdDZAnTFM3akhTUW4tdnpfSkxCQjhkci1xdkxCNml1eV80V2lrd2pCb2ZAheUZApUUMzQ21uU2c5TW9GdXh3aDZAIbEU2bmJZATUlKMk1KVXBCSC0zQ0FuNnlSQVZAvdThNa09EZAHczNmp3aFRIeExGOAZDZD"
 
@@ -63,6 +63,7 @@ if st.button("🚀 Generar y Publicar Anuncio"):
         except Exception as e:
             st.error(f"❌ Error: {e}")
             st.info("💡 Si el error persiste, verifica el saldo en platform.openai.com/billing")
+
 
 
 
