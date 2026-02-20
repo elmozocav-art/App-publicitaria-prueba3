@@ -12,11 +12,11 @@ st.title("🤖 Generador Publicitario Darpe")
 st.write("Haz clic en el botón de abajo para iniciar la magia.")
 
 # 2. Configuración de Credenciale
-OPENAI_API_KEY ="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"
+OPENAI_API_KEY ="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"
 INSTAGRAM_ID ="17841480726721041"
 FB_ACCESS_TOKEN ="IGAAMHxUfIVolBZAFpvdkdiTUdFdDZAnTFM3akhTUW4tdnpfSkxCQjhkci1xdkxCNml1eV80V2lrd2pCb2ZAheUZApUUMzQ21uU2c5TW9GdXh3aDZAIbEU2bmJZATUlKMk1KVXBCSC0zQ0FuNnlSQVZAvdThNa09EZAHczNmp3aFRIeExGOAZDZD"
 
-client = OpenAI(api_key="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")
+client = OpenAI(api_key="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")
 
 # --- INTERFAZ DE USUARIO ---
 
@@ -66,6 +66,7 @@ if st.button("🚀 Generar y Publicar Anuncio"):
         except Exception as e:
             st.error(f"❌ Error: {e}")
             st.info("💡 Revisa los logs o tu saldo en OpenAI.")
+
 
 
 
