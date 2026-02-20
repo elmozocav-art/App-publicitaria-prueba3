@@ -47,35 +47,22 @@ if st.button("🚀 Generar y Publicar Anuncio"):
             st.write("🖼️ Añadiendo marca de agua...")
             archivo_final = aplicar_marca_agua(url_ia, "logoDarpe.png")
             
-            # PASO D: Instagram - Publicar
+        # PASO D: Instagram - Publicar
             if archivo_final:
                 st.write("📲 Subiendo a Instagram...")
-                pie_de_foto = f"🚀 ¡Mira lo que tenemos hoy en Darpeshop! \n🔹 {producto} \n🛒 darpeshop.es #tecnologia #oferta"
+                pie_de_foto = f"🚀 ¡Mira lo que tenemos hoy en Darpeshop! \n🔹 {producto} \n🛒 darpeshop.es #tecnologia"
                 
-                # Publicar
-                resultado = publicar_en_instagram(url_ia, pie_de_foto, FB_ACCESS_TOKEN, INSTAGRAM_ID)
-                st.success(f"✅ ¡Publicado con éxito!")
+                # Vamos a limpiar el token de cualquier espacio accidental
+                token_limpio = FB_ACCESS_TOKEN.strip()
+                id_limpio = INSTAGRAM_ID.strip()
+                
+                # USAR ESTE ORDEN EXACTO (Asegúrate de que coincida con tu instagram_bot.py)
+                resultado = publicar_en_instagram(url_ia, pie_de_foto, token_limpio, id_limpio)
+                
+                # Si el resultado contiene la palabra "error", no pongas el mensaje verde de éxito
+                if isinstance(resultado, dict) and "error" in resultado:
+                    st.error("❌ Fallo en la subida a Instagram")
+                else:
+                    st.success("✅ ¡Publicado con éxito!")
+                
                 st.json(resultado)
-            
-            status.update(label="✅ ¡Proceso terminado!", state="complete")
-
-        except Exception as e:
-            st.error(f"❌ Error: {e}")
-            st.info("💡 Si el error persiste, verifica el saldo en platform.openai.com/billing")
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
