@@ -4,6 +4,11 @@ from instagram_bot import publicar_en_instagram
 from openai import OpenAI
 import os
 
+# Configuración de página (ESTO DEBE IR PRIMERO)
+st.set_page_config(page_title="Darpe Bot", layout="centered")
+
+st.title("🤖 Generador Publicitario Darpe")
+
 # 1. Configuración de Credenciales
 # Reemplaza con tus claves reales
 OPENAI_API_KEY = "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" 
@@ -55,3 +60,4 @@ def ejecutar_bot_openai():
 if __name__ == "__main__":
 
     ejecutar_bot_openai()
+
