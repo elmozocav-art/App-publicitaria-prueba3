@@ -1,65 +1,68 @@
+import streamlit as st
 from darpe_scraper import obtener_producto_aleatorio_total
 from editor_grafico import aplicar_marca_agua
 from instagram_bot import publicar_en_instagram
 from openai import OpenAI
 import os
-import streamlit as st
 
-# Configuración de página (ESTO DEBE IR PRIMERO)
+# 1. Configuración de página (SIEMPRE PRIMERO)
 st.set_page_config(page_title="Darpe Bot", layout="centered")
 
 st.title("🤖 Generador Publicitario Darpe")
+st.write("Haz clic en el botón de abajo para iniciar la magia.")
 
-# 1. Configuración de Credenciales
-# Reemplaza con tus claves reales
-OPENAI_API_KEY = "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" 
+# 2. Configuración de Credenciales
+OPENAI_API_KEY = "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"
 INSTAGRAM_ID = "17841480726721041"
 FB_ACCESS_TOKEN = "IGAAMHxUfIVolBZAFpvdkdiTUdFdDZAnTFM3akhTUW4tdnpfSkxCQjhkci1xdkxCNml1eV80V2lrd2pCb2ZAheUZApUUMzQ21uU2c5TW9GdXh3aDZAIbEU2bmJZATUlKMk1KVXBCSC0zQ0FuNnlSQVZAvdThNa09EZAHczNmp3aFRIeExGOAZDZD"
 
-client = OpenAI(api_key="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")
+client = OpenAI(api_key=OPENAI_API_KEY)
 
+# --- INTERFAZ DE USUARIO ---
 
-def ejecutar_bot_openai():
-    # PASO A: Scraping - Elegir producto de Darpeshop
-    print("🔍 Buscando producto en la web...")
-    producto = obtener_producto_aleatorio_total() #
-    print(f"📦 Producto seleccionado: {producto}")
+if st.button("🚀 Generar y Publicar Anuncio"):
+    # Usamos un contenedor de estado para que el usuario vea qué está pasando
+    with st.status("Ejecutando proceso...", expanded=True) as status:
+        
+        # PASO A: Scraping
+        st.write("🔍 Buscando producto en Darpeshop...")
+        producto = obtener_producto_aleatorio_total()
+        st.info(f"📦 Producto seleccionado: **{producto}**")
 
-    # PASO B: Generación de Imagen con DALL-E 3
-    print("🎨 Generando imagen publicitaria con OpenAI...")
-    try:
-        prompt_publicidad = f"Professional advertising photography of {producto}, clean background, cinematic lighting, 8k resolution, high-end tech product style."
-        
-        response = client.images.generate(
-            model="dall-e-3",
-            prompt=prompt_publicidad,
-            size="1024x1024",
-            quality="hd",
-            n=1,
-        )
-        url_ia = response.data[0].url
-        
-        # PASO C: Edición - Poner el logo de Darpeshop
-        print("🖼️ Añadiendo identidad de marca...")
-        archivo_final = aplicar_marca_agua(url_ia, "logoDarpe.png")
-        
-        # PASO D: Instagram - Publicar
-        if archivo_final:
-            # Importante: Para que Instagram lo vea, la imagen debe estar en una URL pública
-            # Si usas Streamlit Cloud, la URL sería: https://tu-app.streamlit.app/post_final.png
-            url_publica_imagen = "https://tu-app.streamlit.app/post_final.png" 
-            pie_de_foto = f"🚀 ¡Mira lo que tenemos hoy en Darpeshop! \n🔹 {producto} \n🛒 Encuéntralo en darpeshop.es #tecnologia #oferta"
+        # PASO B: Generación de Imagen con DALL-E 3
+        st.write("🎨 Generando imagen publicitaria con OpenAI...")
+        try:
+            prompt_publicidad = f"Professional advertising photography of {producto}, clean background, cinematic lighting, 8k resolution, high-end tech product style."
             
-            print("📲 Subiendo a Instagram...")
-            resultado = publicar_en_instagram(url_publica_imagen, pie_de_foto, INSTAGRAM_ID, FB_ACCESS_TOKEN)
-            print(f"✅ Resultado: {resultado}")
+            response = client.images.generate(
+                model="dall-e-3",
+                prompt=prompt_publicidad,
+                size="1024x1024",
+                quality="hd",
+                n=1,
+            )
+            url_ia = response.data[0].url
+            
+            # Mostramos la imagen generada en la web
+            st.image(url_ia, caption="Imagen generada por IA")
+            
+            # PASO C: Edición - Poner el logo de Darpeshop
+            st.write("🖼️ Añadiendo marca de agua...")
+            archivo_final = aplicar_marca_agua(url_ia, "logoDarpe.png")
+            
+            # PASO D: Instagram - Publicar
+            if archivo_final:
+                st.write("📲 Subiendo a Instagram...")
+                pie_de_foto = f"🚀 ¡Mira lo que tenemos hoy en Darpeshop! \n🔹 {producto} \n🛒 Encuéntralo en darpeshop.es #tecnologia #oferta"
+                
+                # IMPORTANTE: Usamos la URL de la IA directamente si no tienes hosting para el archivo final
+                resultado = publicar_en_instagram(url_ia, pie_de_foto, FB_ACCESS_TOKEN, INSTAGRAM_ID)
+                
+                st.success(f"✅ ¡Publicado con éxito!")
+                st.json(resultado)
+            
+            status.update(label="✅ ¡Proceso terminado!", state="complete")
 
-    except Exception as e:
-        print(f"❌ Error en el proceso de OpenAI: {e}")
-        print("💡 Nota: Revisa si tienes saldo cargado en platform.openai.com/billing")
-
-if __name__ == "__main__":
-
-    ejecutar_bot_openai()
-
-
+        except Exception as e:
+            st.error(f"❌ Error: {e}")
+            st.info("💡 Revisa los logs o tu saldo en OpenAI.")
