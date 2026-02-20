@@ -6,11 +6,11 @@ import os
 
 # 1. Configuración de Credenciales
 # Reemplaza con tus claves reales
-OPENAI_API_KEY = "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" 
+OPENAI_API_KEY = "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" 
 INSTAGRAM_ID = "17841480726721041"
 FB_ACCESS_TOKEN = "IGAAMHxUfIVolBZAFpvdkdiTUdFdDZAnTFM3akhTUW4tdnpfSkxCQjhkci1xdkxCNml1eV80V2lrd2pCb2ZAheUZApUUMzQ21uU2c5TW9GdXh3aDZAIbEU2bmJZATUlKMk1KVXBCSC0zQ0FuNnlSQVZAvdThNa09EZAHczNmp3aFRIeExGOAZDZD"
 
-client = OpenAI(api_key="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")
+client = OpenAI(api_key="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")
 
 
 def ejecutar_bot_openai():
@@ -53,4 +53,5 @@ def ejecutar_bot_openai():
         print("💡 Nota: Revisa si tienes saldo cargado en platform.openai.com/billing")
 
 if __name__ == "__main__":
+
     ejecutar_bot_openai()
