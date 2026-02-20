@@ -5,23 +5,23 @@ from instagram_bot import publicar_en_instagram
 from openai import OpenAI
 import os
 
-# 1. Configuración de página (SIEMPRE PRIMERO)
+# 1. Configuración de página
 st.set_page_config(page_title="Darpe Bot", layout="centered")
 
 st.title("🤖 Generador Publicitario Darpe")
 st.write("Haz clic en el botón de abajo para iniciar la magia.")
 
-# 2. Configuración de Credenciale
-OPENAI_API_KEY ="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"
-INSTAGRAM_ID ="17841480726721041"
-FB_ACCESS_TOKEN ="IGAAMHxUfIVolBZAFpvdkdiTUdFdDZAnTFM3akhTUW4tdnpfSkxCQjhkci1xdkxCNml1eV80V2lrd2pCb2ZAheUZApUUMzQ21uU2c5TW9GdXh3aDZAIbEU2bmJZATUlKMk1KVXBCSC0zQ0FuNnlSQVZAvdThNa09EZAHczNmp3aFRIeExGOAZDZD"
+# 2. Credenciales (Limpiadas y verificadas)
+OPENAI_API_KEY = "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"
+INSTAGRAM_ID = "17841480726721041"
+FB_ACCESS_TOKEN = "IGAAMHxUfIVolBZAFpvdkdiTUdFdDZAnTFM3akhTUW4tdnpfSkxCQjhkci1xdkxCNml1eV80V2lrd2pCb2ZAheUZApUUMzQ21uU2c5TW9GdXh3aDZAIbEU2bmJZATUlKMk1KVXBCSC0zQ0FuNnlSQVZAvdThNa09EZAHczNmp3aFRIeExGOAZDZD"
 
+# Inicializamos el cliente usando la variable directamente
 client = OpenAI(api_key=OPENAI_API_KEY)
 
 # --- INTERFAZ DE USUARIO ---
 
 if st.button("🚀 Generar y Publicar Anuncio"):
-    # Usamos un contenedor de estado para que el usuario vea qué está pasando
     with st.status("Ejecutando proceso...", expanded=True) as status:
         
         # PASO A: Scraping
@@ -42,8 +42,6 @@ if st.button("🚀 Generar y Publicar Anuncio"):
                 n=1,
             )
             url_ia = response.data[0].url
-            
-            # Mostramos la imagen generada en la web
             st.image(url_ia, caption="Imagen generada por IA")
             
             # PASO C: Edición - Poner el logo de Darpeshop
@@ -53,11 +51,10 @@ if st.button("🚀 Generar y Publicar Anuncio"):
             # PASO D: Instagram - Publicar
             if archivo_final:
                 st.write("📲 Subiendo a Instagram...")
-                pie_de_foto = f"🚀 ¡Mira lo que tenemos hoy en Darpeshop! \n🔹 {producto} \n🛒 Encuéntralo en darpeshop.es #tecnologia #oferta"
+                pie_de_foto = f"🚀 ¡Mira lo que tenemos hoy en Darpeshop! \n🔹 {producto} \n🛒 darpeshop.es #tecnologia #oferta"
                 
-                # IMPORTANTE: Usamos la URL de la IA directamente si no tienes hosting para el archivo final
+                # Publicar
                 resultado = publicar_en_instagram(url_ia, pie_de_foto, FB_ACCESS_TOKEN, INSTAGRAM_ID)
-                
                 st.success(f"✅ ¡Publicado con éxito!")
                 st.json(resultado)
             
@@ -65,7 +62,7 @@ if st.button("🚀 Generar y Publicar Anuncio"):
 
         except Exception as e:
             st.error(f"❌ Error: {e}")
-            st.info("💡 Revisa los logs o tu saldo en OpenAI.")
+            st.info("💡 Si el error persiste, verifica el saldo en platform.openai.com/billing")
 
 
 
