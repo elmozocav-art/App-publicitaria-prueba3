@@ -22,7 +22,7 @@ client = OpenAI(api_key=OPENAI_API_KEY)
 
 if st.button("🚀 Generar y Publicar Anuncio"):
     with st.status("Ejecutando proceso...", expanded=True) as status:
-        
+      try:  
         # PASO A: Scraping
         st.write("🔍 Buscando producto en Darpeshop...")
         producto = obtener_producto_aleatorio_total()
@@ -30,7 +30,6 @@ if st.button("🚀 Generar y Publicar Anuncio"):
 
         # PASO B: Generación de Imagen con DALL-E 3
         st.write("🎨 Generando imagen publicitaria con OpenAI...")
-        try:
             prompt_publicidad = f"Professional advertising photography of {producto}, clean background, cinematic lighting, 8k resolution, high-end tech product style."
             
             response = client.images.generate(
@@ -66,3 +65,4 @@ if st.button("🚀 Generar y Publicar Anuncio"):
                     st.success("✅ ¡Publicado con éxito!")
                 
                 st.json(resultado)
+
