@@ -12,7 +12,7 @@ st.title("🤖 Generador Publicitario Darpe")
 st.write("Haz clic en el botón de abajo para iniciar la magia.")
 
 # 2. Configuración de Credenciale
-OPENAI_API_KEY ="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"
+OPENAI_API_KEY ="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"
 INSTAGRAM_ID ="17841480726721041"
 FB_ACCESS_TOKEN ="IGAAMHxUfIVolBZAFpvdkdiTUdFdDZAnTFM3akhTUW4tdnpfSkxCQjhkci1xdkxCNml1eV80V2lrd2pCb2ZAheUZApUUMzQ21uU2c5TW9GdXh3aDZAIbEU2bmJZATUlKMk1KVXBCSC0zQ0FuNnlSQVZAvdThNa09EZAHczNmp3aFRIeExGOAZDZD"
 
@@ -66,6 +66,7 @@ if st.button("🚀 Generar y Publicar Anuncio"):
         except Exception as e:
             st.error(f"❌ Error: {e}")
             st.info("💡 Revisa los logs o tu saldo en OpenAI.")
+
 
 
 
