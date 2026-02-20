@@ -18,25 +18,6 @@ FB_ACCESS_TOKEN = st.secrets["FB_ACCESS_TOKEN"]
 # Inicializamos el cliente usando la variable directamente
 client = OpenAI(api_key=OPENAI_API_KEY)
 
-import streamlit as st
-from darpe_scraper import obtener_producto_aleatorio_total
-from editor_grafico import aplicar_marca_agua
-from instagram_bot import publicar_en_instagram
-from openai import OpenAI
-import os
-
-# 1. Configuración de página
-st.set_page_config(page_title="Darpe Bot", layout="centered")
-
-st.title("🤖 Generador Publicitario Darpe")
-st.write("Haz clic en el botón de abajo para iniciar la magia.")
-
-# 2. Credenciales
-OPENAI_API_KEY = "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"
-INSTAGRAM_ID = "17841480726721041"
-FB_ACCESS_TOKEN = "IGAAMHxUfIVolBZAFpvdkdiTUdFdDZAnTFM3akhTUW4tdnpfSkxCQjhkci1xdkxCNml1eV80V2lrd2pCb2ZAheUZApUUMzQ21uU2c5TW9GdXh3aDZAIbEU2bmJZATUlKMk1KVXBCSC0zQ0FuNnlSQVZAvdThNa09EZAHczNmp3aFRIeExGOAZDZD"
-
-client = OpenAI(api_key=OPENAI_API_KEY)
 
 # --- INTERFAZ DE USUARIO ---
 if st.button("🚀 Generar y Publicar Anuncio"):
@@ -84,4 +65,5 @@ if st.button("🚀 Generar y Publicar Anuncio"):
 
         except Exception as e:
             st.error(f"❌ Error: {e}")
+
 
