@@ -12,10 +12,9 @@ st.title("🤖 Generador Publicitario Darpe")
 st.write("Haz clic en el botón de abajo para iniciar la magia.")
 
 # 2. Credenciales (Limpiadas y verificadas)
-OPENAI_API_KEY = "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"
-INSTAGRAM_ID = "17841480726721041"
-FB_ACCESS_TOKEN = "IGAAMHxUfIVolBZAFpvdkdiTUdFdDZAnTFM3akhTUW4tdnpfSkxCQjhkci1xdkxCNml1eV80V2lrd2pCb2ZAheUZApUUMzQ21uU2c5TW9GdXh3aDZAIbEU2bmJZATUlKMk1KVXBCSC0zQ0FuNnlSQVZAvdThNa09EZAHczNmp3aFRIeExGOAZDZD"
-
+OPENAI_API_KEY = st.secrets["OPENAI_API_KEY"]
+INSTAGRAM_ID = st.secrets["INSTAGRAM_ID"]
+FB_ACCESS_TOKEN = st.secrets["FB_ACCESS_TOKEN"]
 # Inicializamos el cliente usando la variable directamente
 client = OpenAI(api_key=OPENAI_API_KEY)
 
@@ -63,6 +62,7 @@ if st.button("🚀 Generar y Publicar Anuncio"):
         except Exception as e:
             st.error(f"❌ Error: {e}")
             st.info("💡 Si el error persiste, verifica el saldo en platform.openai.com/billing")
+
 
 
 
