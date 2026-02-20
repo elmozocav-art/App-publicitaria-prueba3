@@ -3,6 +3,7 @@ from editor_grafico import aplicar_marca_agua
 from instagram_bot import publicar_en_instagram
 from openai import OpenAI
 import os
+import streamlit as st
 
 # Configuración de página (ESTO DEBE IR PRIMERO)
 st.set_page_config(page_title="Darpe Bot", layout="centered")
@@ -60,4 +61,5 @@ def ejecutar_bot_openai():
 if __name__ == "__main__":
 
     ejecutar_bot_openai()
+
 
