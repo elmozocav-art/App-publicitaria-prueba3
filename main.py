@@ -16,7 +16,7 @@ OPENAI_API_KEY = "sk-proj-s69xMqZfXAm6BIJhsB7M0hA1r1yhv-Khq_yeVnU_WpOslsId9ZS3UZ
 INSTAGRAM_ID = "17841480726721041"
 FB_ACCESS_TOKEN = "IGAAMHxUfIVolBZAFpvdkdiTUdFdDZAnTFM3akhTUW4tdnpfSkxCQjhkci1xdkxCNml1eV80V2lrd2pCb2ZAheUZApUUMzQ21uU2c5TW9GdXh3aDZAIbEU2bmJZATUlKMk1KVXBCSC0zQ0FuNnlSQVZAvdThNa09EZAHczNmp3aFRIeExGOAZDZD"
 
-client = OpenAI("api_key=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")
+client = OpenAI(api_key="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")
 
 # --- INTERFAZ DE USUARIO ---
 
@@ -66,4 +66,5 @@ if st.button("🚀 Generar y Publicar Anuncio"):
         except Exception as e:
             st.error(f"❌ Error: {e}")
             st.info("💡 Revisa los logs o tu saldo en OpenAI.")
+
 
