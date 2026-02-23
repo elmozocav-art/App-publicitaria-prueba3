@@ -4,37 +4,61 @@ import random
 
 def obtener_producto_aleatorio_total():
     base_url = "https://darpepro.com"
-    # Mapeo completo de las 12 secciones de tu imagen
+    
+    # Lista completa y exacta de las 12 categorías de tu imagen
     categorias = [
-        "/collections/textil", "/collections/bolsas", "/collections/tazas-y-termos",
-        "/collections/oficina", "/collections/ocio", "/collections/herramientas",
-        "/collections/infantil", "/collections/productos-eco", "/collections/eventos",
-        "/collections/deporte", "/collections/lamina-solar", "/collections/tecnologia"
+        "/collections/textil",           # Icono 1: Camiseta
+        "/collections/bolsas",           # Icono 2: Bolsa
+        "/collections/tazas-y-termos",   # Icono 3: Taza
+        "/collections/oficina",          # Icono 4: Escritorio
+        "/collections/ocio",             # Icono 5: Dado
+        "/collections/herramientas",     # Icono 6: Herramientas
+        "/collections/infantil",         # Icono 7: Bebé
+        "/collections/productos-eco",    # Icono 8: Reciclaje
+        "/collections/eventos",          # Icono 9: Fiesta
+        "/collections/deporte",          # Icono 10: Baloncesto
+        "/collections/lamina-solar",     # Icono 11: Coche/Sol
+        "/collections/tecnologia"        # Icono 12: Portátil
     ]
     
-    random.shuffle(categorias) # Mezclamos para variar el contenido
-    headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
+    # Elegimos una de las 12 al azar
+    categoria_elegida = random.choice(categorias)
+    url_categoria = base_url + categoria_elegida
+    
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+    }
 
-    for cat in categorias:
-        try:
-            url_cat = base_url + cat
-            res = requests.get(url_cat, headers=headers, timeout=10)
-            if res.status_code != 200: continue
-            
-            soup = BeautifulSoup(res.text, 'html.parser')
-            # Buscamos enlaces de productos (excluyendo colecciones)
-            links = [a['href'] for a in soup.find_all('a', href=True) 
-                     if "/products/" in a['href'] and "collections" not in a['href']]
-            
-            if links:
-                url_prod = base_url + random.choice(list(set(links)))
-                # Entramos al producto para sacar el nombre real
-                res_p = requests.get(url_prod, headers=headers, timeout=10)
-                soup_p = BeautifulSoup(res_p.text, 'html.parser')
-                nombre = soup_p.find('meta', property="og:title")['content'].split('|')[0].strip()
-                
-                return {"nombre": nombre, "url": url_prod}
-        except:
-            continue # Si esta categoría falla, prueba la siguiente
-            
-    return None
+    try:
+        # 1. Entramos en la categoría
+        res = requests.get(url_categoria, headers=headers, timeout=10)
+        soup = BeautifulSoup(res.text, 'html.parser')
+        
+        # 2. Capturamos todos los enlaces de productos (/products/)
+        # Filtramos para que no se confunda con enlaces de colecciones o legales
+        enlaces = [a['href'] for a in soup.find_all('a', href=True) 
+                  if "/products/" in a['href'] and "collections" not in a['href']]
+        
+        if not enlaces:
+            return None
+
+        # 3. Elegimos un producto al azar y construimos su URL completa
+        link_relativo = random.choice(list(set(enlaces)))
+        url_producto_directa = base_url + link_relativo
+        
+        # 4. Entramos al producto para sacar el NOMBRE REAL (para evitar el texto 'PRODUCTO')
+        res_p = requests.get(url_producto_directa, headers=headers, timeout=10)
+        soup_p = BeautifulSoup(res_p.text, 'html.parser')
+        
+        # El nombre suele estar en el meta tag 'og:title' o en el <h1>
+        nombre_tag = soup_p.find('meta', property="og:title")
+        nombre_real = nombre_tag['content'].split('|')[0].strip() if nombre_tag else "Producto DarpePro"
+        
+        return {
+            "nombre": nombre_real,
+            "url": url_producto_directa # ENLACE DIRECTO GARANTIZADO
+        }
+        
+    except Exception as e:
+        print(f"Error en scraper: {e}")
+        return None
