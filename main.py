@@ -1,74 +1,79 @@
 import streamlit as st
 from darpe_scraper import obtener_producto_aleatorio_total
-from editor_grafico import aplicar_marca_agua
+from editor_grafico import aplicar_plantilla_y_texto
 from instagram_bot import publicar_en_instagram
 from openai import OpenAI
-import os
 
-# 1. Configuración de página
-st.set_page_config(page_title="Darpe Bot", layout="centered")
+# Configuración visual de la app
+st.set_page_config(page_title="DarpePro Auto-Reel", layout="centered")
 
-st.title("🤖 Generador Publicitario Darpe")
-st.write("Haz clic en el botón de abajo para iniciar la magia.")
+st.title("🎬 Generador de Reels DarpePro")
+st.write("Crea anuncios verticales con IA y publícalos automáticamente.")
 
-# 2. Credenciales
-OPENAI_API_KEY = st.secrets["OPENAI_API_KEY"]
-INSTAGRAM_ID = st.secrets["INSTAGRAM_ID"]
-FB_ACCESS_TOKEN = st.secrets["FB_ACCESS_TOKEN"]
-client = OpenAI(api_key=OPENAI_API_KEY)
+# Inicialización de OpenAI con tus credenciales seguras
+client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
 
-if st.button("🚀 Generar y Publicar Anuncio"):
-    with st.status("Ejecutando proceso...", expanded=True) as status:
+if st.button("🚀 Lanzar Campaña (Imagen + Frase IA)"):
+    with st.status("🤖 El bot está trabajando...", expanded=True) as status:
         try:
-            # PASO A: Buscamos producto
-            st.write("🔍 Buscando producto...")
-            producto = obtener_producto_aleatorio_total()
-            st.info(f"📦 Producto: {producto}")
+            # --- PASO 1: SCRAPING ---
+            st.write("🔍 Buscando producto en darpepro.com...")
+            prod = obtener_producto_aleatorio_total()
+            st.info(f"📦 Producto: **{prod['nombre']}**")
 
-            # PASO B: Generamos imagen con DALL-E (RESTAURADO)
-            st.write("🎨 Generando imagen con IA...")
-            prompt_publicidad = f"Professional advertising photography of {producto}, clean background, cinematic lighting, 8k resolution, high-end tech product style."
-            
-            # --- AQUÍ ESTABA EL ERROR: Faltaba esta llamada ---
-            response = client.images.generate(
-                model="dall-e-3",
-                prompt=prompt_publicidad,
-                size="1024x1024",
-                quality="hd",
-                n=1,
+            # --- PASO 2: IA GENERA FRASE ---
+            st.write("✍️ GPT escribiendo frase publicitaria...")
+            gpt_res = client.chat.completions.create(
+                model="gpt-3.5-turbo",
+                messages=[{"role": "user", "content": f"Actúa como un experto en marketing. Escribe una frase corta e impactante (máximo 5 palabras) para vender este producto: {prod['nombre']}"}]
             )
-            # ------------------------------------------------
-            
-            url_ia = response.data[0].url 
-            st.image(url_ia, caption="Imagen original (sin logo)")
+            frase_ia = gpt_res.choices[0].message.content.strip('"')
+            st.write(f"✨ Frase generada: *{frase_ia}*")
 
-            # PASO C: Edición y Subida a Hosting
-            st.write("🖼️ Añadiendo logo y creando enlace público...")
-            url_final_con_logo = aplicar_marca_agua(url_ia, "logoDarpe.png")
-            
-            if url_final_con_logo:
-                # PASO D: Instagram
-                st.write("📲 Subiendo a Instagram...")
-                pie_de_foto = f"🚀 ¡Mira lo que tenemos hoy en Darpeshop! \n🔹 {producto} \n🛒 https://www.darpeshop.es/ #tecnologia"
+            # --- PASO 3: IA GENERA IMAGEN ---
+            st.write("🎨 DALL-E creando imagen publicitaria...")
+            img_res = client.images.generate(
+                model="dall-e-3",
+                prompt=f"Professional studio product photography of {prod['nombre']}, minimalist background, elegant cinematic lighting, 8k resolution",
+                size="1024x1024"
+            )
+            url_ia = img_res.data[0].url
+            st.image(url_ia, caption="Imagen original de la IA")
+
+            # --- PASO 4: EDICIÓN CON PLANTILLA VERTICAL ---
+            st.write("🖼️ Aplicando plantilla DarpePRO y textos...")
+            # Esta función usa tu 'Plantilla DarpePRO.jpeg' y la sube a ImgBB
+            url_final = aplicar_plantilla_y_texto(url_ia, prod, frase_ia)
+
+            # --- PASO 5: PUBLICACIÓN EN INSTAGRAM ---
+            if url_final:
+                st.write("📲 Subiendo a Instagram como formato vertical...")
                 
-                # Usamos la URL que tiene el logo incrustado
-                resultado = publicar_en_instagram(
-                    url_final_con_logo, 
-                    pie_de_foto, 
-                    FB_ACCESS_TOKEN.strip(), 
-                    INSTAGRAM_ID.strip()
+                # Creamos el pie de foto con el link directo que sacó el scraper
+                pie = (
+                    f"🔥 ¡NOVEDAD en DarpePro!\n\n"
+                    f"⭐ {prod['nombre']}\n"
+                    f"✨ {frase_ia}\n\n"
+                    f"🔗 Consíguelo aquí: {prod['url']}\n\n"
+                    f"#DarpePro #Tecnologia #Gadgets"
                 )
                 
-                if isinstance(resultado, dict) and "error" in resultado:
-                    st.error(f"❌ Error de Instagram: {resultado['error'].get('message', 'Desconocido')}")
+                resultado = publicar_en_instagram(
+                    url_final, 
+                    pie, 
+                    st.secrets["FB_ACCESS_TOKEN"].strip(), 
+                    st.secrets["INSTAGRAM_ID"].strip()
+                )
+                
+                if isinstance(resultado, dict) and "id" in resultado:
+                    st.success(f"✅ ¡Publicado! ID del post: {resultado['id']}")
                 else:
-                    st.success("✅ ¡Publicado en Instagram con éxito!")
-                    st.json(resultado)
+                    st.error(f"❌ Error al publicar: {resultado}")
             else:
-                st.error("❌ Falló la creación de la imagen con logo.")
+                st.error("❌ No se pudo generar la imagen final.")
 
-            status.update(label="✅ ¡Proceso completado!", state="complete")
+            status.update(label="✅ ¡Todo listo!", state="complete")
 
         except Exception as e:
-            st.error(f"Ocurrió un error: {e}")
+            st.error(f"⚠️ Se detuvo el proceso: {e}")
 
