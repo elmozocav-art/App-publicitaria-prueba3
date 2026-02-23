@@ -6,52 +6,56 @@ from bs4 import BeautifulSoup
 def obtener_producto_aleatorio_total():
     base_url = "https://darpepro.com"
 
-    # =========================
-    # MÉTODO 1 → JSON Shopify
-    # =========================
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0 Safari/537.36",
+        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
+        "Accept-Language": "es-ES,es;q=0.9,en;q=0.8",
+        "Connection": "keep-alive"
+    }
+
     try:
-        json_url = f"{base_url}/products.json"
-        response = requests.get(json_url, timeout=10)
+        # Entramos a la colección general
+        url = f"{base_url}/collections/all"
+        response = requests.get(url, headers=headers, timeout=10)
 
-        if response.status_code == 200:
-            data = response.json()
-            productos = data.get("products", [])
+        if response.status_code != 200:
+            print("Status code:", response.status_code)
+            return None
 
-            if productos:
-                producto = random.choice(productos)
-                nombre = producto.get("title")
-                handle = producto.get("handle")
+        soup = BeautifulSoup(response.text, "html.parser")
 
-                url_producto = f"{base_url}/products/{handle}"
+        enlaces = []
 
-                return {
-                    "nombre": nombre,
-                    "url": url_producto
-                }
+        for a in soup.find_all("a", href=True):
+            href = a["href"]
+            if "/products/" in href:
+                if href.startswith("/"):
+                    enlaces.append(base_url + href)
+                else:
+                    enlaces.append(href)
+
+        enlaces = list(set(enlaces))
+
+        if not enlaces:
+            print("No se encontraron enlaces de productos.")
+            return None
+
+        url_producto = random.choice(enlaces)
+
+        # Entramos en la página del producto elegido
+        response_producto = requests.get(url_producto, headers=headers, timeout=10)
+        soup_producto = BeautifulSoup(response_producto.text, "html.parser")
+
+        titulo = soup_producto.find("h1")
+        nombre = titulo.get_text(strip=True) if titulo else "Producto DarpePro"
+
+        return {
+            "nombre": nombre,
+            "url": url_producto
+        }
+
     except Exception as e:
-        print("JSON method failed:", e)
+        print("Error scraper:", e)
+        return None
 
-    # =========================
-    # MÉTODO 2 → Sitemap XML
-    # =========================
-    try:
-        sitemap_url = f"{base_url}/sitemap_products_1.xml"
-        response = requests.get(sitemap_url, timeout=10)
 
-        if response.status_code == 200:
-            soup = BeautifulSoup(response.content, "xml")
-            urls = [loc.text for loc in soup.find_all("loc") if "/products/" in loc.text]
-
-            if urls:
-                url_producto = random.choice(urls)
-                nombre = url_producto.split("/")[-1].replace("-", " ").title()
-
-                return {
-                    "nombre": nombre,
-                    "url": url_producto
-                }
-    except Exception as e:
-        print("Sitemap method failed:", e)
-
-    # Si ambos fallan
-    return None
