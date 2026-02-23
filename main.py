@@ -49,7 +49,7 @@ if st.button("🚀 Generar y Publicar Anuncio"):
             if url_final_con_logo:
                 # PASO D: Instagram
                 st.write("📲 Subiendo a Instagram...")
-                pie_de_foto = f"🚀 ¡Mira lo que tenemos hoy en Darpeshop! \n🔹 {producto} \n🛒 darpeshop.es #tecnologia"
+                pie_de_foto = f"🚀 ¡Mira lo que tenemos hoy en Darpeshop! \n🔹 {producto} \n🛒 https://www.darpeshop.es/ #tecnologia"
                 
                 # Usamos la URL que tiene el logo incrustado
                 resultado = publicar_en_instagram(
@@ -71,3 +71,4 @@ if st.button("🚀 Generar y Publicar Anuncio"):
 
         except Exception as e:
             st.error(f"Ocurrió un error: {e}")
+
