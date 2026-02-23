@@ -62,12 +62,7 @@ if st.button("🚀 Generar Campaña Inteligente"):
         url_final = aplicar_plantilla_y_texto(url_ia, prod, frase_ia)
 
         if url_final:
-           pie = (
-                f"🔥 {prod['nombre']}\n\n"
-                f"✨ {frase_ia}\n\n"
-                f"🛒 Compra aquí:\n{prod['url']}\n\n"
-                f"#DarpePro #Tecnologia #Oferta"
-        )
+            pie = f"🔥 {prod['nombre']} \n✨ {frase_ia} \n🔗 Consíguelo aquí: {prod['url']}"
             resultado = publicar_en_instagram(url_final, pie, st.secrets["FB_ACCESS_TOKEN"], st.secrets["INSTAGRAM_ID"])
             
             if isinstance(resultado, dict) and "id" in resultado:
