@@ -12,27 +12,23 @@ def obtener_producto_aleatorio_total():
         "/collections/deporte", "/collections/lamina-solar", "/collections/tecnologia"
     ]
     
-    cat_elegida = base_url + random.choice(categorias)
-    headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
+    url_cat = base_url + random.choice(categorias)
+    headers = {"User-Agent": "Mozilla/5.0"}
     
     try:
-        # Entramos a una categoría específica (más estable que /all)
-        response = requests.get(cat_elegida, headers=headers, timeout=10)
-        soup = BeautifulSoup(response.text, 'html.parser')
+        # Petición simple para evitar bloqueos
+        res = requests.get(url_cat, headers=headers, timeout=10)
+        soup = BeautifulSoup(res.text, 'html.parser')
         
-        # Buscamos productos reales
+        # Buscamos enlaces de productos
         enlaces = [a['href'] for a in soup.find_all('a', href=True) if "/products/" in a['href']]
         
-        if not enlaces: return None
-
-        url_final = base_url + random.choice(list(set(enlaces)))
-        
-        # Sacamos el nombre real para evitar que la IA invente texto
-        res_prod = requests.get(url_final, headers=headers)
-        soup_prod = BeautifulSoup(res_prod.text, 'html.parser')
-        nombre = soup_prod.find('meta', property="og:title")['content'].split('|')[0].strip()
-        img_real = soup_prod.find('meta', property="og:image")['content'] if soup_prod.find('meta', property="og:image") else ""
-
-        return {"nombre": nombre, "url": url_final, "imagen_real": img_real}
+        if enlaces:
+            url_prod = base_url + random.choice(list(set(enlaces)))
+            # Sacamos el nombre directamente de la URL para no hacer otra petición y evitar fallos
+            nombre = url_prod.split('/')[-1].replace('-', ' ').title()
+            
+            return {"nombre": nombre, "url": url_prod}
     except:
         return None
+    return None
