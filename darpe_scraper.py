@@ -4,35 +4,40 @@ import random
 
 def obtener_producto_aleatorio_total():
     base_url = "https://darpepro.com"
-    # Las 12 categorías que solicitaste de tu panel
-    categorias = [
-        "/collections/textil", "/collections/bolsas", "/collections/tazas-y-termos",
-        "/collections/oficina", "/collections/ocio", "/collections/herramientas",
-        "/collections/infantil", "/collections/productos-eco", "/collections/eventos",
-        "/collections/deporte", "/collections/lamina-solar", "/collections/tecnologia"
-    ]
-    
-    url_objetivo = base_url + random.choice(categorias)
-    headers = {'User-Agent': 'Mozilla/5.0'}
+    collections_url = f"{base_url}/collections/all"
+    headers = {"User-Agent": "Mozilla/5.0"}
     
     try:
-        respuesta = requests.get(url_objetivo, headers=headers, timeout=10)
-        soup = BeautifulSoup(respuesta.text, 'html.parser')
+        response = requests.get(collections_url, headers=headers)
+        soup = BeautifulSoup(response.text, 'html.parser')
         
-        # Buscamos los enlaces a productos
-        enlaces = [a['href'] for a in soup.find_all('a', href=True) if "/products/" in a['href']]
+        # Buscamos todos los enlaces que contengan '/products/'
+        enlaces = soup.find_all('a', href=True)
+        links_productos = []
         
-        if enlaces:
-            # Limpiamos duplicados y elegimos uno
-            link_producto = random.choice(list(set(enlaces)))
-            url_final = base_url + link_producto if not link_producto.startswith('http') else link_producto
-            
-            # Sacamos el nombre del link para que sea rápido y no falle la conexión
-            nombre_sucio = link_producto.split('/')[-1].replace('-', ' ').title()
-            
-            return {
-                "nombre": nombre_sucio,
-                "url": url_final
-            }
-    except:
-        return None
+        for a in enlaces:
+            href = a['href']
+            if "/products/" in href and "collections" not in href:
+                # Si el link es relativo, le pegamos la base
+                full_url = href if href.startswith('http') else base_url + href
+                links_productos.append(full_url)
+        
+        # Eliminamos duplicados y elegimos uno al azar
+        url_final = random.choice(list(set(links_productos)))
+        
+        # Entramos al producto para sacar el nombre real y la imagen real
+        res_prod = requests.get(url_final, headers=headers)
+        soup_prod = BeautifulSoup(res_prod.text, 'html.parser')
+        
+        # Extraer nombre desde la etiqueta meta o el h1
+        nombre = soup_prod.find('meta', property="og:title")['content'] if soup_prod.find('meta', property="og:title") else "Producto Tecnológico"
+        # Extraer imagen real del producto
+        img_real = soup_prod.find('meta', property="og:image")['content'] if soup_prod.find('meta', property="og:image") else ""
+
+        return {
+            "nombre": nombre.split('|')[0].strip(), # Limpiamos el nombre si trae basura
+            "url": url_final, 
+            "imagen_real": img_real
+        }
+    except Exception as e:
+        return {"nombre": "Gadget Pro", "url": base_url, "imagen_real": ""}
