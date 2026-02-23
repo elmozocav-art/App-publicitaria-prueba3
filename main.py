@@ -4,33 +4,34 @@ from editor_grafico import aplicar_plantilla_y_texto
 from instagram_bot import publicar_en_instagram
 from openai import OpenAI
 
-# Configuración de la página
-st.set_page_config(page_title="DarpePro AI-Director v2", layout="centered")
+# Configuración inicial del Director Creativo
+st.set_page_config(page_title="DarpePro AI-Director", layout="centered")
 client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
 
 st.title("🎬 Director Creativo DarpePro")
 
-if st.button("🚀 Lanzar Campaña con Enlace Directo"):
+if st.button("🚀 Lanzar Campaña (Enlace Directo + Nombre Real)"):
     with st.status("🤖 Iniciando proceso creativo...", expanded=True) as status:
         
-        # 1. SCRAPER: Obtenemos el producto y su URL específica
+        # 1. SCRAPER: Captura del producto y su link específico
         st.write("🔍 Buscando producto en la tienda...")
         prod = obtener_producto_aleatorio_total()
         
+        # Verificación de seguridad para evitar errores de conexión
         if not prod or prod['url'] == "https://darpepro.com":
-            st.error("❌ No se pudo obtener un enlace directo. Reintenta.")
+            st.error("❌ No se pudo obtener un enlace directo. Reintenta.") #
             st.stop()
             
         st.write(f"📦 Producto detectado: **{prod['nombre']}**")
         st.info(f"🔗 Enlace directo encontrado: {prod['url']}")
 
-        # 2. GPT: DISEÑO DE ESCENARIO Y FRASE
-        st.write("🧠 GPT diseñando el concepto visual...")
+        # 2. GPT: Definición del concepto visual y frase
+        st.write("🧠 GPT diseñando el concepto creativo...")
         diseño_ia = client.chat.completions.create(
             model="gpt-3.5-turbo",
             messages=[
-                {"role": "system", "content": "Eres un director de arte de fotografía publicitaria. No permitas texto dentro de la imagen."},
-                {"role": "user", "content": f"Para el producto '{prod['nombre']}', genera: 1. Frase de venta (5 palabras). 2. Escenario fotográfico en inglés. Formato: FRASE: [frase] | ESCENARIO: [escenario en ingles]"}
+                {"role": "system", "content": "Director de arte publicitario. NUNCA incluyas texto o letras en la imagen."},
+                {"role": "user", "content": f"Diseña un escenario premium para el producto '{prod['nombre']}'. Formato: FRASE: [5 palabras] | ESCENARIO: [escenario en ingles]"}
             ]
         )
         
@@ -40,12 +41,12 @@ if st.button("🚀 Lanzar Campaña con Enlace Directo"):
         
         st.write(f"✨ Frase: *{frase_ia}*")
 
-        # 3. DALL-E: GENERACIÓN DE LA IMAGEN
+        # 3. DALL-E: Creación de la fotografía publicitaria
         st.write("🎨 DALL-E ejecutando la fotografía...")
         prompt_final = (
             f"Professional high-end commercial photography of {prod['nombre']}. "
             f"Context: {escenario_ia}. "
-            f"Realistic textures, cinematic lighting, 8k, advertisement style. IMPORTANT: No text, no letters."
+            f"Realistic textures, cinematic lighting, 8k, advertisement style. NO TEXT, NO LETTERS."
         )
 
         img_res = client.images.generate(
@@ -54,27 +55,28 @@ if st.button("🚀 Lanzar Campaña con Enlace Directo"):
             size="1024x1024"
         )
         url_ia = img_res.data[0].url
-        st.image(url_ia, caption="Imagen Base (IA)")
+        st.image(url_ia, caption="Fotografía generada por IA")
 
-        # 4. EDITOR Y PUBLICACIÓN
+        # 4. EDITOR Y PUBLICACIÓN: Fusión con plantilla y enlace directo
         st.write("🛠️ Aplicando plantilla y preparando post...")
         url_final = aplicar_plantilla_y_texto(url_ia, prod, frase_ia)
 
         if url_final:
-            # Pie de foto con el enlace directo al producto
+            # Construcción del pie de foto con el enlace directo
             pie = (
                 f"🔥 {prod['nombre']} \n"
                 f"✨ {frase_ia} \n\n"
                 f"🛍️ COMPRA DIRECTA AQUÍ: {prod['url']} \n\n"
-                f"#DarpePro #Ventas #Regalos"
+                f"#DarpePro #Novedades #TiendaOnline"
             )
             
+            # Envío a Instagram
             resultado = publicar_en_instagram(url_final, pie, st.secrets["FB_ACCESS_TOKEN"], st.secrets["INSTAGRAM_ID"])
             
             if isinstance(resultado, dict) and "id" in resultado:
-                st.success(f"✅ ¡Publicado con éxito!")
-                st.write(f"Link del producto enviado a Instagram: {prod['url']}")
+                st.success(f"✅ ¡Publicado con éxito con su enlace directo!")
             else:
-                st.error(f"❌ Error en Instagram: {resultado}")
+                # Manejo de errores de publicación o timeout
+                st.error(f"❌ Error en la publicación: {resultado}")
         
         status.update(label="✅ Proceso completado", state="complete")
