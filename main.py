@@ -112,3 +112,4 @@ FRASE: [frase] | ESCENARIO: [escenario]
             st.error(f"❌ Error al publicar: {resultado}")
 
         status.update(label="✅ Proceso completado", state="complete")
+
