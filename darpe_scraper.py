@@ -4,29 +4,32 @@ import random
 
 def obtener_producto_aleatorio_total():
     base_url = "https://darpepro.com"
-    # Volvemos a la URL más estable que no saturaba la conexión
+    # Usamos la ruta más genérica y estable
     url_objetivo = f"{base_url}/collections/all"
     headers = {"User-Agent": "Mozilla/5.0"}
     
     try:
-        # Petición rápida con tiempo de espera corto
+        # Petición directa con un timeout corto para evitar bloqueos prolongados
         res = requests.get(url_objetivo, headers=headers, timeout=5)
+        if res.status_code != 200:
+            return None
+            
         soup = BeautifulSoup(res.text, 'html.parser')
         
-        # Buscamos enlaces de productos
+        # Extraemos enlaces de productos (sin navegar por categorías)
         enlaces = [a['href'] for a in soup.find_all('a', href=True) if "/products/" in a['href']]
         
         if enlaces:
-            link_relativo = random.choice(list(set(enlaces)))
-            url_final = base_url + link_relativo
+            path_producto = random.choice(list(set(enlaces)))
+            url_final = base_url + path_producto if not path_producto.startswith('http') else path_producto
             
-            # Sacamos el nombre directamente del link para evitar una segunda carga
-            nombre_limpio = link_relativo.split('/')[-1].replace('-', ' ').upper()
+            # Generamos el nombre directamente desde el texto del link para no cargar la web otra vez
+            nombre_producto = path_producto.split('/')[-1].replace('-', ' ').upper()
             
             return {
-                "nombre": nombre_limpio,
+                "nombre": nombre_producto,
                 "url": url_final
             }
-    except:
+    except Exception:
         return None
     return None
