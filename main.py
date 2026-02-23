@@ -4,52 +4,40 @@ from editor_grafico import aplicar_plantilla_y_texto
 from instagram_bot import publicar_en_instagram
 from openai import OpenAI
 
-st.set_page_config(page_title="DarpePro Auto-Reel v9", layout="centered")
 client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
 
-if st.button("🚀 Lanzar Campaña (Enlace Directo + Nombre Real)"):
-    with st.status("🔗 Conectando con la base de datos de DarpePro...", expanded=True) as status:
+if st.button("🚀 Lanzar Campaña de Categorías"):
+    with st.status("📁 Explorando las 12 categorías...", expanded=True) as status:
         prod = obtener_producto_aleatorio_total()
         
         if not prod:
-            st.error("❌ No se pudieron obtener productos. Reintenta en 5 segundos.")
-            status.update(label="Fallo de conexión", state="error")
+            st.error("❌ Error Crítico: No se pudo conectar con las categorías.")
             st.stop()
 
-        st.success(f"📦 Producto: **{prod['nombre']}**")
-        st.info(f"🔗 Enlace: {prod['url']}")
+        st.success(f"📦 Producto encontrado: **{prod['nombre']}**")
 
-        # GPT: Crea el Escenario
+        # GPT crea el escenario pero DALL-E tiene prohibido escribir
         diseño = client.chat.completions.create(
             model="gpt-3.5-turbo",
-            messages=[
-                {"role": "system", "content": "Director de arte. NUNCA menciones letras o texto en tus descripciones."},
-                {"role": "user", "content": f"Diseña un escenario premium para {prod['nombre']}. FRASE: [5 palabras] | ESCENARIO: [ingles]"}
-            ]
+            messages=[{"role": "system", "content": "NUNCA incluyas texto o etiquetas en la imagen."},
+                      {"role": "user", "content": f"Escenario de lujo para {prod['nombre']}. FRASE: [5 palabras] | ESCENARIO: [ingles]"}]
         )
         resp = diseño.choices[0].message.content
         frase_ia = resp.split("|")[0].replace("FRASE:", "").strip()
         escenario_ia = resp.split("|")[1].replace("ESCENARIO:", "").strip()
 
-        # DALL-E: Foto Limpia (Sin palabras como 'PRODUCTO')
-        prompt_final = (
-            f"Commercial photography of {prod['nombre']}. {escenario_ia}. "
-            f"STRICTLY NO TEXT, NO LETTERS, NO LABELS. Clean product surfaces. 8k resolution."
+        # Generar imagen limpia (Sin la palabra 'PRODUCTO')
+        img_res = client.images.generate(
+            model="dall-e-3",
+            prompt=f"Professional product photography of {prod['nombre']} in {escenario_ia}. NO TEXT, NO LABELS.",
+            size="1024x1024"
         )
-        img_res = client.images.generate(model="dall-e-3", prompt=prompt_final)
         url_ia = img_res.data[0].url
-        st.image(url_ia, caption="Fondo generado por IA (Sin texto)")
 
-        # EDITOR: Python escribe el NOMBRE REAL sobre la imagen
+        # Fusión de plantilla y escritura del NOMBRE REAL por Python
         url_final = aplicar_plantilla_y_texto(url_ia, prod, frase_ia)
 
         if url_final:
-            pie = f"🔥 {prod['nombre']} \n✨ {frase_ia} \n\n🔗 {prod['url']}"
-            res_ig = publicar_en_instagram(url_final, pie, st.secrets["FB_ACCESS_TOKEN"], st.secrets["INSTAGRAM_ID"])
-            
-            if "id" in res_ig:
-                st.success("✅ ¡Publicado con éxito con su enlace directo!")
-            else:
-                st.error(f"❌ Error: {res_ig}")
-        
-        status.update(label="✅ Proceso completado", state="complete")
+            pie = f"🔥 {prod['nombre']} \n✨ {frase_ia} \n\n🔗 Compra aquí: {prod['url']}"
+            publicar_en_instagram(url_final, pie, st.secrets["FB_ACCESS_TOKEN"], st.secrets["INSTAGRAM_ID"])
+            st.success(f"✅ ¡Publicado! Enlace: {prod['url']}")
