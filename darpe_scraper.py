@@ -1,61 +1,49 @@
 import requests
-import random
 from bs4 import BeautifulSoup
+import random
 
 
 def obtener_producto_aleatorio_total():
     base_url = "https://darpepro.com"
+    collections_url = f"{base_url}/collections/all"
 
-    headers = {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0 Safari/537.36",
-        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
-        "Accept-Language": "es-ES,es;q=0.9,en;q=0.8",
-        "Connection": "keep-alive"
-    }
+    headers = {"User-Agent": "Mozilla/5.0"}
 
     try:
-        # Entramos a la colección general
-        url = f"{base_url}/collections/all"
-        response = requests.get(url, headers=headers, timeout=10)
-
-        if response.status_code != 200:
-            print("Status code:", response.status_code)
-            return None
-
+        response = requests.get(collections_url, headers=headers)
+        response.raise_for_status()
         soup = BeautifulSoup(response.text, "html.parser")
 
-        enlaces = []
+        # Buscar tarjetas reales de productos
+        productos = soup.select("a[href*='/products/']")
 
-        for a in soup.find_all("a", href=True):
-            href = a["href"]
-            if "/products/" in href:
-                if href.startswith("/"):
-                    enlaces.append(base_url + href)
-                else:
-                    enlaces.append(href)
+        enlaces_validos = []
+        for a in productos:
+            href = a.get("href")
+            if href and "/products/" in href:
+                enlaces_validos.append(href)
 
-        enlaces = list(set(enlaces))
+        enlaces_validos = list(set(enlaces_validos))
 
-        if not enlaces:
-            print("No se encontraron enlaces de productos.")
-            return None
+        if not enlaces_validos:
+            return None  # Si falla, no devolvemos la home
 
-        url_producto = random.choice(enlaces)
+        link_final = random.choice(enlaces_validos)
+        url_producto = base_url + link_final if link_final.startswith("/") else link_final
 
-        # Entramos en la página del producto elegido
-        response_producto = requests.get(url_producto, headers=headers, timeout=10)
+        # 🔎 Ahora entramos en la página del producto para sacar el nombre real
+        response_producto = requests.get(url_producto, headers=headers)
         soup_producto = BeautifulSoup(response_producto.text, "html.parser")
 
         titulo = soup_producto.find("h1")
-        nombre = titulo.get_text(strip=True) if titulo else "Producto DarpePro"
+        nombre_real = titulo.get_text(strip=True) if titulo else "Producto DarpePro"
 
         return {
-            "nombre": nombre,
+            "nombre": nombre_real,
             "url": url_producto
         }
 
     except Exception as e:
         print("Error scraper:", e)
         return None
-
 
