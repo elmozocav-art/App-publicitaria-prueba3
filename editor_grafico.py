@@ -5,52 +5,46 @@ from PIL import Image, ImageDraw, ImageFont, ImageChops, ImageOps
 
 def aplicar_plantilla_y_texto(url_ia, info_producto, frase_ia):
     try:
-        # 1. Descargar imagen de la IA
+        # 1. Cargar imagen IA (Limpia)
         res = requests.get(url_ia)
         img_ia = Image.open(BytesIO(res.content)).convert("RGB")
         
-        # 2. Cargar tu Plantilla (la que tiene los logos y fondo blanco)
-        # Debe estar en tu GitHub con este nombre exacto
+        # 2. Cargar Plantilla DarpePRO
         plantilla = Image.open("Plantilla DarpePRO.jpeg").convert("RGB")
-        ancho_p, alto_p = plantilla.size # Tamaño original del Reel
+        ancho_p, alto_p = plantilla.size
         
-        # 3. AJUSTE DE FONDO: 
-        # Hacemos que la imagen de la IA rellene TODO el lienzo de la plantilla
+        # 3. FUSIÓN: IA de fondo y Plantilla encima (Elimina el blanco)
         fondo_ia = ImageOps.fit(img_ia, (ancho_p, alto_p), Image.LANCZOS)
-        
-        # 4. TRUCO DE FUSIÓN (MULTIPLY):
-        # Esta línea hace que el blanco de la plantilla sea transparente 
-        # y los logos oscuros se mantengan sobre la foto de la IA.
         imagen_final = ImageChops.multiply(fondo_ia, plantilla)
         
-        # 5. AÑADIR TEXTOS PROFESIONALES
+        # 4. TEXTO: Escribir el nombre real del producto (NO 'PRODUCTO')
         draw = ImageDraw.Draw(imagen_final)
         try:
-            # Fuentes en Streamlit Cloud (Linux)
+            # Ruta de fuente para Streamlit Cloud
             font_path = "/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf"
             font_nombre = ImageFont.truetype(font_path, 65)
-            font_frase = ImageFont.truetype(font_path, 40)
+            font_sub = ImageFont.truetype(font_path, 40)
         except:
             font_nombre = ImageFont.load_default()
-            font_frase = ImageFont.load_default()
+            font_sub = ImageFont.load_default()
 
-        # Posicionamos el texto en la zona inferior, antes del link de la web
-        draw.text((ancho_p//2, alto_p - 450), info_producto['nombre'].upper(), 
-                  font=font_nombre, fill="white", anchor="mm")
+        # Nombre del producto centrado abajo
+        nombre_texto = info_producto['nombre'].upper()
+        draw.text((ancho_p//2, alto_p - 450), nombre_texto, font=font_nombre, fill="white", anchor="mm")
         
-        draw.text((ancho_p//2, alto_p - 370), frase_ia, 
-                  font=font_frase, fill="#EEEEEE", anchor="mm")
+        # Frase publicitaria
+        draw.text((ancho_p//2, alto_p - 370), frase_ia, font=font_sub, fill="#EEEEEE", anchor="mm")
 
-        # 6. GUARDAR Y SUBIR A IMGBB
+        # 5. GUARDAR Y SUBIR
         buffer = BytesIO()
         imagen_final.save(buffer, format="JPEG", quality=95)
         
         api_key = st.secrets["IMGBB_API_KEY"]
-        files = {"image": ("reel_final.jpg", buffer.getvalue())}
+        files = {"image": ("post_darpe.jpg", buffer.getvalue())}
         res_imgbb = requests.post(f"https://api.imgbb.com/1/upload?key={api_key}", files=files)
         
         return res_imgbb.json()["data"]["url"]
         
     except Exception as e:
-        st.error(f"Fallo en el editor: {e}")
+        st.error(f"Error editando: {e}")
         return None
