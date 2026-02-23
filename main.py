@@ -67,9 +67,8 @@ if st.button("🚀 Generar Campaña Inteligente"):
                 f"✨ {frase_ia}\n\n"
                 f"🛒 Compra aquí:\n{prod['url']}\n\n"
                 f"#DarpePro #Tecnologia #Oferta"
-            )
-
-                resultado = publicar_en_instagram(url_final, pie, st.secrets["FB_ACCESS_TOKEN"], st.secrets["INSTAGRAM_ID"])
+        )
+            resultado = publicar_en_instagram(url_final, pie, st.secrets["FB_ACCESS_TOKEN"], st.secrets["INSTAGRAM_ID"])
             
             if isinstance(resultado, dict) and "id" in resultado:
                 st.success("✅ ¡Publicado! La IA ha completado todo el ciclo creativo.")
@@ -77,4 +76,5 @@ if st.button("🚀 Generar Campaña Inteligente"):
                 st.error(f"❌ Error: {resultado}")
         
         status.update(label="✅ Proceso completado", state="complete")
+
 
