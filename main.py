@@ -1,29 +1,25 @@
-import streamlit as st
-from darpe_scraper import obtener_producto_aleatorio_total
-from editor_grafico import aplicar_plantilla_y_texto
-from openai import OpenAI
+# PASO A: Scraper mejorado
+st.write("🔍 Rastreando DarpePro en busca de novedades...")
+producto_info = obtener_producto_aleatorio_total() # Ahora devuelve {'nombre': '...', 'url': '...'}
 
-client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
+producto_nombre = producto_info['nombre']
+producto_url = producto_info['url']
 
-if st.button("🚀 Lanzar Campaña"):
-    with st.spinner("Conectando con la tienda..."):
-        prod = obtener_producto_aleatorio_total()
-        
-        if prod:
-            st.success(f"📦 Producto: {prod['nombre']}")
-            
-            # Generar imagen con DALL-E (Sin texto para evitar errores)
-            img_res = client.images.generate(
-                model="dall-e-3",
-                prompt=f"Premium product photography of {prod['nombre']} in a clean studio, 8k, no text.",
-            )
-            url_ia = img_res.data[0].url
-            
-            # Crear post final
-            url_final = aplicar_plantilla_y_texto(url_ia, prod, "OFERTA")
-            
-            if url_final:
-                st.image(url_final)
-                st.info(f"🔗 Enlace directo listo: {prod['url']}")
-        else:
-            st.error("Fallo de conexión. Inténtalo de nuevo en unos segundos.")
+st.info(f"📦 Producto seleccionado: **{producto_nombre}**")
+
+# ... (PASO B: Generar imagen con IA usando el producto_nombre) ...
+
+# PASO C: Edición con la nueva plantilla
+# Usamos la plantilla vertical que subiste
+url_final_con_logo = aplicar_plantilla_y_texto(url_ia, producto_info)
+
+if url_final_con_logo:
+    # PASO D: Publicación con Link Directo
+    pie_de_foto = (
+        f"🚀 ¡Novedad en DarpePro!\n\n"
+        f"🔹 {producto_nombre}\n"
+        f"🔥 Consíguelo aquí: {producto_url}\n\n"
+        f"#DarpePro #Tecnologia #Oferta"
+    )
+    
+    # Publicar...
