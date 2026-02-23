@@ -11,14 +11,11 @@ st.set_page_config(page_title="Darpe Bot", layout="centered")
 st.title("🤖 Generador Publicitario Darpe")
 st.write("Haz clic en el botón de abajo para iniciar la magia.")
 
-# 2. Credenciales (Limpiadas y verificadas)
+# 2. Credenciales
 OPENAI_API_KEY = st.secrets["OPENAI_API_KEY"]
 INSTAGRAM_ID = st.secrets["INSTAGRAM_ID"]
 FB_ACCESS_TOKEN = st.secrets["FB_ACCESS_TOKEN"]
-# Inicializamos el cliente usando la variable directamente
 client = OpenAI(api_key=OPENAI_API_KEY)
-
-# ... (Tus imports y configuración inicial igual) ...
 
 if st.button("🚀 Generar y Publicar Anuncio"):
     with st.status("Ejecutando proceso...", expanded=True) as status:
@@ -28,23 +25,33 @@ if st.button("🚀 Generar y Publicar Anuncio"):
             producto = obtener_producto_aleatorio_total()
             st.info(f"📦 Producto: {producto}")
 
-            # PASO B: Generamos imagen con DALL-E
+            # PASO B: Generamos imagen con DALL-E (RESTAURADO)
             st.write("🎨 Generando imagen con IA...")
-            # (Aquí va tu código de client.images.generate...)
+            prompt_publicidad = f"Professional advertising photography of {producto}, clean background, cinematic lighting, 8k resolution, high-end tech product style."
+            
+            # --- AQUÍ ESTABA EL ERROR: Faltaba esta llamada ---
+            response = client.images.generate(
+                model="dall-e-3",
+                prompt=prompt_publicidad,
+                size="1024x1024",
+                quality="hd",
+                n=1,
+            )
+            # ------------------------------------------------
+            
             url_ia = response.data[0].url 
             st.image(url_ia, caption="Imagen original (sin logo)")
 
-            # PASO C: Edición y Subida a Hosting (NUEVO)
+            # PASO C: Edición y Subida a Hosting
             st.write("🖼️ Añadiendo logo y creando enlace público...")
-            # Esta función ahora nos devuelve la URL de ImgBB con el logo ya puesto
             url_final_con_logo = aplicar_marca_agua(url_ia, "logoDarpe.png")
             
             if url_final_con_logo:
-                # PASO D: Instagram (CORREGIDO)
+                # PASO D: Instagram
                 st.write("📲 Subiendo a Instagram...")
-                pie_de_foto = f"🚀 ¡Mira lo que tenemos hoy en Darpeshop! \n🔹 {producto} \n🛒 darpeshop.es"
+                pie_de_foto = f"🚀 ¡Mira lo que tenemos hoy en Darpeshop! \n🔹 {producto} \n🛒 darpeshop.es #tecnologia"
                 
-                # ¡USAMOS url_final_con_logo!
+                # Usamos la URL que tiene el logo incrustado
                 resultado = publicar_en_instagram(
                     url_final_con_logo, 
                     pie_de_foto, 
@@ -52,8 +59,11 @@ if st.button("🚀 Generar y Publicar Anuncio"):
                     INSTAGRAM_ID.strip()
                 )
                 
-                st.success("✅ ¡Publicado en Instagram con éxito!")
-                st.json(resultado)
+                if isinstance(resultado, dict) and "error" in resultado:
+                    st.error(f"❌ Error de Instagram: {resultado['error'].get('message', 'Desconocido')}")
+                else:
+                    st.success("✅ ¡Publicado en Instagram con éxito!")
+                    st.json(resultado)
             else:
                 st.error("❌ Falló la creación de la imagen con logo.")
 
@@ -61,5 +71,3 @@ if st.button("🚀 Generar y Publicar Anuncio"):
 
         except Exception as e:
             st.error(f"Ocurrió un error: {e}")
-
-
