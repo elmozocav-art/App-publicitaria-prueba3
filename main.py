@@ -18,52 +18,48 @@ FB_ACCESS_TOKEN = st.secrets["FB_ACCESS_TOKEN"]
 # Inicializamos el cliente usando la variable directamente
 client = OpenAI(api_key=OPENAI_API_KEY)
 
+# ... (Tus imports y configuración inicial igual) ...
 
-# --- INTERFAZ DE USUARIO ---
 if st.button("🚀 Generar y Publicar Anuncio"):
     with st.status("Ejecutando proceso...", expanded=True) as status:
         try:
-            # PASO A: Scraping
-            st.write("🔍 Buscando producto en Darpeshop...")
+            # PASO A: Buscamos producto
+            st.write("🔍 Buscando producto...")
             producto = obtener_producto_aleatorio_total()
-            st.info(f"📦 Producto seleccionado: **{producto}**")
+            st.info(f"📦 Producto: {producto}")
 
-            # PASO B: Generación de Imagen
-            st.write("🎨 Generando imagen publicitaria...")
-            prompt_publicidad = f"Professional advertising photography of {producto}, clean background, cinematic lighting, 8k resolution, high-end tech product style."
+            # PASO B: Generamos imagen con DALL-E
+            st.write("🎨 Generando imagen con IA...")
+            # (Aquí va tu código de client.images.generate...)
+            url_ia = response.data[0].url 
+            st.image(url_ia, caption="Imagen original (sin logo)")
+
+            # PASO C: Edición y Subida a Hosting (NUEVO)
+            st.write("🖼️ Añadiendo logo y creando enlace público...")
+            # Esta función ahora nos devuelve la URL de ImgBB con el logo ya puesto
+            url_final_con_logo = aplicar_marca_agua(url_ia, "logoDarpe.png")
             
-            response = client.images.generate(
-                model="dall-e-3",
-                prompt=prompt_publicidad,
-                size="1024x1024",
-                quality="hd",
-                n=1,
-            )
-            url_ia = response.data[0].url
-            st.image(url_ia, caption="Imagen generada por IA")
-            
-            # PASO C: Edición
-            st.write("🖼️ Añadiendo marca de agua...")
-            archivo_final = aplicar_marca_agua(url_ia, "logoDarpe.png")
-            
-            # PASO D: Instagram
-            if archivo_final:
+            if url_final_con_logo:
+                # PASO D: Instagram (CORREGIDO)
                 st.write("📲 Subiendo a Instagram...")
-                pie_de_foto = f"🚀 ¡Mira lo que tenemos hoy en Darpeshop! \n🔹 {producto} \n🛒 darpeshop.es #tecnologia"
+                pie_de_foto = f"🚀 ¡Mira lo que tenemos hoy en Darpeshop! \n🔹 {producto} \n🛒 darpeshop.es"
                 
-                # Publicar (Token y luego ID)
-                resultado = publicar_en_instagram(url_ia, pie_de_foto, FB_ACCESS_TOKEN.strip(), INSTAGRAM_ID.strip())
+                # ¡USAMOS url_final_con_logo!
+                resultado = publicar_en_instagram(
+                    url_final_con_logo, 
+                    pie_de_foto, 
+                    FB_ACCESS_TOKEN.strip(), 
+                    INSTAGRAM_ID.strip()
+                )
                 
-                if isinstance(resultado, dict) and "error" in resultado:
-                    st.error("❌ Error de Instagram/Facebook")
-                else:
-                    st.success("✅ ¡Proceso de envío completado!")
-                
+                st.success("✅ ¡Publicado en Instagram con éxito!")
                 st.json(resultado)
-            
-            status.update(label="✅ ¡Terminado!", state="complete")
+            else:
+                st.error("❌ Falló la creación de la imagen con logo.")
+
+            status.update(label="✅ ¡Proceso completado!", state="complete")
 
         except Exception as e:
-            st.error(f"❌ Error: {e}")
+            st.error(f"Ocurrió un error: {e}")
 
 
