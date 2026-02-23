@@ -1,10 +1,11 @@
 import requests
 from bs4 import BeautifulSoup
 import random
+import time
 
 def obtener_producto_aleatorio_total():
     base_url = "https://darpepro.com"
-    # Mapeo completo de las 12 categorías de tu panel
+    # Las 12 categorías exactas de tu imagen
     categorias = [
         "/collections/textil", "/collections/bolsas", "/collections/tazas-y-termos",
         "/collections/oficina", "/collections/ocio", "/collections/herramientas",
@@ -12,22 +13,43 @@ def obtener_producto_aleatorio_total():
         "/collections/deporte", "/collections/lamina-solar", "/collections/tecnologia"
     ]
     
-    cat_elegida = base_url + random.choice(categorias)
-    headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
+    # Elegimos una al azar para empezar
+    cat_path = random.choice(categorias)
+    url_final = base_url + cat_path
+    
+    # Este 'disfraz' es vital para evitar el 'Fallo de conexión'
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",
+        "Accept-Language": "es-ES,es;q=0.9",
+        "Referer": "https://google.com"
+    }
 
     try:
-        # Buscamos productos en la categoría
-        res = requests.get(cat_elegida, headers=headers, timeout=10)
-        soup = BeautifulSoup(res.text, 'html.parser')
-        links = [a['href'] for a in soup.find_all('a', href=True) if "/products/" in a['href']]
+        # Hacemos la petición con un pequeño retraso para no parecer un robot
+        time.sleep(1)
+        res = requests.get(url_final, headers=headers, timeout=15)
         
-        if links:
-            url_final = base_url + random.choice(list(set(links)))
-            # Extraemos el nombre real para que Python lo escriba después
-            res_p = requests.get(url_final, headers=headers)
-            soup_p = BeautifulSoup(res_p.text, 'html.parser')
-            nombre = soup_p.find('meta', property="og:title")['content'].split('|')[0].strip()
-            
-            return {"nombre": nombre, "url": url_final}
-    except:
+        if res.status_code != 200:
+            return None
+
+        soup = BeautifulSoup(res.text, 'html.parser')
+        
+        # Buscamos enlaces de productos
+        enlaces = [a['href'] for a in soup.find_all('a', href=True) if "/products/" in a['href']]
+        
+        if not enlaces:
+            return None
+
+        # Escogemos un producto y extraemos su nombre real
+        prod_link = base_url + random.choice(list(set(enlaces)))
+        res_p = requests.get(prod_link, headers=headers, timeout=10)
+        soup_p = BeautifulSoup(res_p.text, 'html.parser')
+        
+        # Sacamos el nombre real para que el Editor lo use luego
+        nombre_meta = soup_p.find('meta', property="og:title")
+        nombre_real = nombre_meta['content'].split('|')[0].strip() if nombre_meta else "Producto DarpePro"
+        
+        return {"nombre": nombre_real, "url": prod_link}
+    except Exception as e:
+        print(f"Error de red: {e}")
         return None
