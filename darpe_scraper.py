@@ -1,45 +1,30 @@
 import requests
-from bs4 import BeautifulSoup
 import random
 
 
 def obtener_producto_aleatorio_total():
     base_url = "https://darpepro.com"
-    collections_url = f"{base_url}/collections/all"
-
-    headers = {"User-Agent": "Mozilla/5.0"}
+    json_url = f"{base_url}/collections/all/products.json"
 
     try:
-        response = requests.get(collections_url, headers=headers)
+        response = requests.get(json_url)
         response.raise_for_status()
-        soup = BeautifulSoup(response.text, "html.parser")
+        data = response.json()
 
-        # Buscar tarjetas reales de productos
-        productos = soup.select("a[href*='/products/']")
+        productos = data.get("products", [])
 
-        enlaces_validos = []
-        for a in productos:
-            href = a.get("href")
-            if href and "/products/" in href:
-                enlaces_validos.append(href)
+        if not productos:
+            return None
 
-        enlaces_validos = list(set(enlaces_validos))
+        producto = random.choice(productos)
 
-        if not enlaces_validos:
-            return None  # Si falla, no devolvemos la home
+        nombre = producto.get("title")
+        handle = producto.get("handle")
 
-        link_final = random.choice(enlaces_validos)
-        url_producto = base_url + link_final if link_final.startswith("/") else link_final
-
-        # 🔎 Ahora entramos en la página del producto para sacar el nombre real
-        response_producto = requests.get(url_producto, headers=headers)
-        soup_producto = BeautifulSoup(response_producto.text, "html.parser")
-
-        titulo = soup_producto.find("h1")
-        nombre_real = titulo.get_text(strip=True) if titulo else "Producto DarpePro"
+        url_producto = f"{base_url}/products/{handle}"
 
         return {
-            "nombre": nombre_real,
+            "nombre": nombre,
             "url": url_producto
         }
 
