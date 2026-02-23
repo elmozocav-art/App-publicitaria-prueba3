@@ -1,33 +1,57 @@
 import requests
 import random
+from bs4 import BeautifulSoup
 
 
 def obtener_producto_aleatorio_total():
     base_url = "https://darpepro.com"
-    json_url = f"{base_url}/collections/all/products.json"
 
+    # =========================
+    # MÉTODO 1 → JSON Shopify
+    # =========================
     try:
-        response = requests.get(json_url)
-        response.raise_for_status()
-        data = response.json()
+        json_url = f"{base_url}/products.json"
+        response = requests.get(json_url, timeout=10)
 
-        productos = data.get("products", [])
+        if response.status_code == 200:
+            data = response.json()
+            productos = data.get("products", [])
 
-        if not productos:
-            return None
+            if productos:
+                producto = random.choice(productos)
+                nombre = producto.get("title")
+                handle = producto.get("handle")
 
-        producto = random.choice(productos)
+                url_producto = f"{base_url}/products/{handle}"
 
-        nombre = producto.get("title")
-        handle = producto.get("handle")
-
-        url_producto = f"{base_url}/products/{handle}"
-
-        return {
-            "nombre": nombre,
-            "url": url_producto
-        }
-
+                return {
+                    "nombre": nombre,
+                    "url": url_producto
+                }
     except Exception as e:
-        print("Error scraper:", e)
-        return None
+        print("JSON method failed:", e)
+
+    # =========================
+    # MÉTODO 2 → Sitemap XML
+    # =========================
+    try:
+        sitemap_url = f"{base_url}/sitemap_products_1.xml"
+        response = requests.get(sitemap_url, timeout=10)
+
+        if response.status_code == 200:
+            soup = BeautifulSoup(response.content, "xml")
+            urls = [loc.text for loc in soup.find_all("loc") if "/products/" in loc.text]
+
+            if urls:
+                url_producto = random.choice(urls)
+                nombre = url_producto.split("/")[-1].replace("-", " ").title()
+
+                return {
+                    "nombre": nombre,
+                    "url": url_producto
+                }
+    except Exception as e:
+        print("Sitemap method failed:", e)
+
+    # Si ambos fallan
+    return None
