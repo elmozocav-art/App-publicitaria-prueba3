@@ -5,30 +5,39 @@ import random
 def obtener_producto_aleatorio_total():
     base_url = "https://darpepro.com"
     collections_url = f"{base_url}/collections/all"
+    headers = {"User-Agent": "Mozilla/5.0"}
+    
     try:
-        headers = {"User-Agent": "Mozilla/5.0"}
         response = requests.get(collections_url, headers=headers)
         soup = BeautifulSoup(response.text, 'html.parser')
         
-        # Buscamos todos los bloques de producto
-        items = soup.find_all('div', class_='grid-view-item') or soup.find_all('a', href=True)
+        # Buscamos todos los enlaces que contengan '/products/'
+        enlaces = soup.find_all('a', href=True)
+        links_productos = []
         
-        enlaces_validos = []
-        for a in soup.find_all('a', href=True):
-            if "/products/" in a['href']:
-                enlaces_validos.append(a['href'])
+        for a in enlaces:
+            href = a['href']
+            if "/products/" in href and "collections" not in href:
+                # Si el link es relativo, le pegamos la base
+                full_url = href if href.startswith('http') else base_url + href
+                links_productos.append(full_url)
         
-        link_final = random.choice(list(set(enlaces_validos)))
-        url_producto = base_url + link_final if link_final.startswith('/') else link_final
+        # Eliminamos duplicados y elegimos uno al azar
+        url_final = random.choice(list(set(links_productos)))
         
-        # Entramos al producto para sacar su FOTO REAL
-        res_prod = requests.get(url_producto, headers=headers)
+        # Entramos al producto para sacar el nombre real y la imagen real
+        res_prod = requests.get(url_final, headers=headers)
         soup_prod = BeautifulSoup(res_prod.text, 'html.parser')
-        img_tag = soup_prod.find('meta', property="og:image")
-        img_real = img_tag['content'] if img_tag else ""
-
-        nombre = link_final.split('/')[-1].replace('-', ' ').title()
         
-        return {"nombre": nombre, "url": url_producto, "imagen_real": img_real}
-    except:
-        return {"nombre": "Producto", "url": base_url, "imagen_real": ""}
+        # Extraer nombre desde la etiqueta meta o el h1
+        nombre = soup_prod.find('meta', property="og:title")['content'] if soup_prod.find('meta', property="og:title") else "Producto Tecnológico"
+        # Extraer imagen real del producto
+        img_real = soup_prod.find('meta', property="og:image")['content'] if soup_prod.find('meta', property="og:image") else ""
+
+        return {
+            "nombre": nombre.split('|')[0].strip(), # Limpiamos el nombre si trae basura
+            "url": url_final, 
+            "imagen_real": img_real
+        }
+    except Exception as e:
+        return {"nombre": "Gadget Pro", "url": base_url, "imagen_real": ""}
