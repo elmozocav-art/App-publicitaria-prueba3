@@ -20,21 +20,21 @@ if st.button("🚀 Generar Campaña Inteligente"):
         st.write(f"📦 Producto detectado: **{prod['nombre']}**")
         st.write(f"🔗 Enlace detectado: {prod['url']}")
 
-        # 2️⃣ Generar frase + escenario
+        # 2️⃣ MEJORA EN TEXTO: Instrucciones de Neuromarketing
         diseño_ia = client.chat.completions.create(
-            model="gpt-3.5-turbo",
+            model="gpt-4o", # He subido a 4o para frases mucho más humanas y vendedoras
             messages=[
                 {
-                    "role": "system",
-                    "content": "Eres un director creativo experto en publicidad premium."
+                    "role": "system", 
+                    "content": "Eres un Director Creativo de marcas de lujo como Apple o Nike. Creas deseo de compra."
                 },
                 {
-                    "role": "user",
+                    "role": "user", 
                     "content": f"""
 Para el producto '{prod['nombre']}':
 
-1. Crea una frase corta (máximo 5 palabras).
-2. Describe un escenario fotográfico profesional en inglés.
+1. Crea una frase de marketing emocional y potente (máximo 5 palabras). No uses palabras trilladas como 'increíble'.
+2. Describe un escenario fotográfico minimalista y caro en inglés (cinematic, soft shadows, premium textures).
 
 Formato:
 FRASE: texto | ESCENARIO: texto
@@ -49,24 +49,25 @@ FRASE: texto | ESCENARIO: texto
             frase_ia = respuesta.split("|")[0].replace("FRASE:", "").strip()
             escenario_ia = respuesta.split("|")[1].replace("ESCENARIO:", "").strip()
         except:
-            frase_ia = "Innovación sin límites"
-            escenario_ia = "Modern studio lighting, premium commercial look"
+            frase_ia = "La perfección en tus manos"
+            escenario_ia = "Minimalist luxury studio, soft directional lighting, elegant shadows"
 
         st.write(f"✨ Frase: {frase_ia}")
 
-        # 3️⃣ Generar imagen
+        # 3️⃣ MEJORA EN IMAGEN: Prompt de Fotografía Realista
+        # Hemos añadido detalles de lente, iluminación y texturas para evitar el "look IA"
         prompt_final = (
-            f"Professional high-end commercial photography. "
-            f"The product is {prod['nombre']}. "
-            f"{escenario_ia}. "
-            f"Ultra realistic, cinematic lighting, 8k resolution. No text."
+            f"High-end commercial studio photography of {prod['nombre']}. "
+            f"Concept: {escenario_ia}. "
+            f"Shot on 85mm lens, f/4.0 aperture, natural soft shadows, hyper-realistic, "
+            f"8k resolution, professional color grading, clean composition, NO text."
         )
 
         img_res = client.images.generate(
             model="dall-e-3",
             prompt=prompt_final,
             size="1024x1024",
-            quality="hd"
+            quality="hd" # Manteniendo HD para máxima nitidez
         )
 
         url_ia = img_res.data[0].url
@@ -79,13 +80,14 @@ FRASE: texto | ESCENARIO: texto
             st.error("Error generando imagen final.")
             st.stop()
 
-        # 5️⃣ Crear caption con enlace directo
+        # 5️⃣ MEJORA EN CAPTION: Emojis y estructura limpia
         caption = (
-            f"🔥 {prod['nombre']}\n\n"
+            f"🔥 {prod['nombre'].upper()}\n\n"
             f"✨ {frase_ia}\n\n"
-            f"🛒 Compra aquí:\n"
+            f"Un nuevo nivel de diseño y funcionalidad llega a DarpePro. 🚀\n\n"
+            f"🛒 Adquiérelo aquí:\n"
             f"{prod['url']}\n\n"
-            f"#DarpePro #Tecnologia #Ofertas"
+            f"#DarpePro #Exclusivo #TechStyle #Design"
         )
 
         # 6️⃣ Publicar
