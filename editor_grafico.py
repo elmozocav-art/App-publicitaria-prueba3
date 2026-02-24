@@ -1,51 +1,65 @@
 import streamlit as st
-import requests
-import base64
-import qrcode
-from io import BytesIO
-from PIL import Image, ImageDraw, ImageFont, ImageChops, ImageOps
+import time
+from datetime import datetime, timedelta
+from darpe_scraper import obtener_producto_aleatorio_total
+from editor_grafico import aplicar_plantilla_y_texto_base64
+from instagram_bot import publicar_en_instagram
+from openai import OpenAI
 
-def procesar_imagen_auto(dato_ia, info_producto, frase_ia):
-    try:
-        # A. Detectar y obtener la imagen (URL o Base64)
-        if str(dato_ia).startswith('http'):
-            # Es una URL
-            res = requests.get(dato_ia, timeout=15)
-            img_ia = Image.open(BytesIO(res.content)).convert("RGB")
-        else:
-            # Es Base64 (Desencriptación automática)
-            img_data = base64.b64decode(dato_ia)
-            img_ia = Image.open(BytesIO(img_data)).convert("RGB")
-        
-        # B. Cargar Plantilla
-        plantilla = Image.open("Plantilla DarpePRO.jpeg").convert("RGB")
-        ancho, alto = plantilla.size
-        
-        # C. Mezclar Imagen e IA
-        fondo_ia = ImageOps.fit(img_ia, (ancho, alto), Image.LANCZOS)
-        imagen_final = ImageChops.multiply(fondo_ia, plantilla)
-        
-        # D. Generar QR del producto (Tu nuevo método de enlace)
-        qr = qrcode.make(info_producto.get('url', 'https://darpepro.com')).convert('RGB').resize((150, 150))
-        imagen_final.paste(qr, (ancho - 180, alto - 180))
-        
-        # E. Textos
-        draw = ImageDraw.Draw(imagen_final)
+st.set_page_config(page_title="DarpePro Auto-Bot", layout="centered")
+client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
+
+st.title("🎬 Director Automático DarpePro")
+
+# Control de automatización
+if "ejecutando" not in st.session_state:
+    st.session_state.ejecutando = False
+
+col1, col2 = st.columns(2)
+with col1:
+    if st.button("🚀 Iniciar Modo Automático (Cada 20h)"):
+        st.session_state.ejecutando = True
+with col2:
+    if st.button("🛑 Detener"):
+        st.session_state.ejecutando = False
+
+status_placeholder = st.empty()
+
+while st.session_state.ejecutando:
+    with st.status("🤖 Iniciando ciclo de publicación...", expanded=True) as status:
+        # 1. Obtener producto real
+        prod = obtener_producto_aleatorio_total()
+        if not prod:
+            prod = {"nombre": "DARPEPRO", "url": "https://darpepro.com"}
+
+        # 2. Generar Imagen (Base64) - Sin frases de IA en el prompt de texto
+        st.write(f"📸 Generando imagen para: {prod['nombre']}")
+        img_base64 = None
         try:
-            font = ImageFont.truetype("/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf", 60)
-        except:
-            font = ImageFont.load_default()
+            img_res = client.images.generate(
+                model="gpt-image-1",
+                prompt=f"Professional luxury studio photo of {prod['nombre']}, cinematic lighting",
+                size="1024x1024",
+                quality="high",
+                response_format="b64_json" # Formato compatible con tu editor
+            )
+            img_base64 = img_res.data[0].b64_json
+        except Exception as e:
+            st.error(f"❌ Error API: {e}")
 
-        draw.text((ancho // 2, alto - 300), info_producto['nombre'].upper(), font=font, fill="white", anchor="mm")
-        draw.text((ancho // 2, alto - 230), frase_ia, font=font, fill="#FFD700", anchor="mm")
-
-        # F. Subir a IMGBB
-        buf = BytesIO()
-        imagen_final.save(buf, format="JPEG")
-        buf.seek(0)
-        r = requests.post(f"https://api.imgbb.com/1/upload?key={st.secrets['IMGBB_API_KEY']}", files={"image": buf})
-        return r.json()["data"]["url"]
-
-    except Exception as e:
-        st.error(f"Error en editor: {e}")
-        return None
+        # 3. Procesar y Publicar
+        if img_base64:
+            # Enviamos el nombre real del producto al editor
+            url_final = aplicar_plantilla_y_texto_base64(img_base64, prod)
+            
+            if url_final:
+                caption = f"🔥 Nuevo producto disponible: {prod['nombre'].upper()}\n\n🛒 Compra aquí: {prod['url']}"
+                publicar_en_instagram(url_final, caption, st.secrets["FB_ACCESS_TOKEN"], st.secrets["INSTAGRAM_ID"])
+                st.success(f"✅ Publicado: {prod['nombre']}")
+        
+        proxima_cita = datetime.now() + timedelta(hours=20)
+        status.update(label=f"Próxima publicación: {proxima_cita.strftime('%H:%M:%S')}", state="complete")
+    
+    # Espera de 20 horas (72000 segundos)
+    time.sleep(72000)
+    st.rerun()
