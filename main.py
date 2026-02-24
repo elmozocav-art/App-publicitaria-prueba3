@@ -1,4 +1,6 @@
 import streamlit as st
+import requests
+import json
 from darpe_scraper import obtener_producto_aleatorio_total
 from editor_grafico import aplicar_plantilla_y_texto
 from instagram_bot import publicar_en_instagram
@@ -6,7 +8,9 @@ from openai import OpenAI
 
 st.set_page_config(page_title="DarpePro AI-Director", layout="centered")
 
-client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
+# Configuración de API
+API_KEY = st.secrets["OPENAI_API_KEY"]
+client = OpenAI(api_key=API_KEY)
 
 st.title("🎬 Director Creativo DarpePro")
 
@@ -16,88 +20,81 @@ if st.button("🚀 Generar Campaña Inteligente"):
 
         # 1️⃣ Obtener producto
         prod = obtener_producto_aleatorio_total()
-        
-        # Seguridad básica para evitar que el programa se detenga si el scraper falla
         if not prod:
             st.error("No se pudo obtener producto de la web.")
             st.stop()
 
-        st.write(f"📦 Producto detectado: **{prod['nombre']}**")
-        st.write(f"🔗 Enlace detectado: {prod['url']}")
+        st.write(f"📦 Producto: **{prod['nombre']}**")
 
-        # 2️⃣ MEJORA EN TEXTO: Instrucciones de Neuromarketing (Usando GPT-4o para mejor calidad)
+        # 2️⃣ Generar Prompt Maestro (GPT-4o)
+        # Usamos un modelo superior para describir la escena como un fotógrafo real
         diseño_ia = client.chat.completions.create(
-            model="gpt-5-2025-08-07", 
+            model="gpt-4o",
             messages=[
-                {
-                    "role": "system", 
-                    "content": "Eres un Director Creativo de marcas de lujo. Creas deseo de compra con frases minimalistas."
-                },
-                {
-                    "role": "user", 
-                    "content": f"Producto: '{prod['nombre']}'. Crea: 1. Frase potente (máximo 5 palabras). 2. Escenario fotográfico premium en inglés. Formato: FRASE: texto | ESCENARIO: texto"
-                }
+                {"role": "system", "content": "Eres un Director Creativo de lujo. Generas descripciones técnicas de fotografía."},
+                {"role": "user", "content": f"Producto: {prod['nombre']}. Crea: 1. Frase de venta (5 palabras). 2. Descripción visual detallada en inglés para IA de imagen (estilo premium, 85mm, cinematic lighting). Formato: FRASE: texto | ESCENARIO: texto"}
             ]
         )
-
+        
         respuesta = diseño_ia.choices[0].message.content
-
         try:
             frase_ia = respuesta.split("|")[0].replace("FRASE:", "").strip()
             escenario_ia = respuesta.split("|")[1].replace("ESCENARIO:", "").strip()
         except:
-            frase_ia = "La perfección en tus manos"
-            escenario_ia = "Minimalist luxury studio, soft directional lighting, elegant shadows"
+            frase_ia = "Excelencia en cada detalle"
+            escenario_ia = "High-end commercial photography, minimalist studio"
 
-        st.write(f"✨ Frase: {frase_ia}")
-
-        # 3️⃣ MEJORA EN IMAGEN: Solución al error de 'quality'
+        # 3️⃣ Generar Imagen con GPT Image 1 (Llamada según tutorial)
+        st.write("📸 Generando imagen con GPT Image 1...")
+        
         prompt_final = (
-            f"High-end commercial studio photography of {prod['nombre']}. "
-            f"Concept: {escenario_ia}. "
-            f"Shot on 85mm lens, f/4.0 aperture, natural soft shadows, hyper-realistic textures, "
-            f"8k resolution, professional color grading, clean composition, NO text."
+            f"Official commercial product photography of {prod['nombre']}. "
+            f"Scene: {escenario_ia}. Ultra-realistic textures, professional color grading, "
+            f"soft shadows, 8k resolution, clean background. No watermarks."
         )
 
-        # Usamos DALL-E 3 con calidad 'hd' correctamente configurada
-        img_res = client.images.generate(
-            model="gpt-image-1",
-            prompt=prompt_final,
-            size="1024x1024",
-            quality="hd"  # En DALL-E 3 el valor correcto es 'hd' o 'standard'
-        )
-
-        url_ia = img_res.data[0].url
-        st.image(url_ia)
-
-        # 4️⃣ Aplicar plantilla
-        url_final = aplicar_plantilla_y_texto(url_ia, prod, frase_ia)
-
-        if not url_final:
-            st.error("Error generando imagen final.")
+        try:
+            # Llamada al modelo específico mencionado en el video
+            img_res = client.images.generate(
+                model="gpt-image-1", # Cambiado según el nuevo modelo disponible
+                prompt=prompt_final,
+                size="1024x1024",
+                quality="hd" 
+            )
+            
+            if img_res and img_res.data:
+                url_ia = img_res.data[0].url
+                st.image(url_ia, caption="Resultado GPT Image 1")
+            else:
+                st.error("El modelo gpt-image-1 no devolvió datos. Revisa la verificación de tu cuenta.")
+                st.stop()
+        except Exception as e:
+            st.error(f"Error en el modelo de imagen: {e}")
             st.stop()
 
-        # 5️⃣ MEJORA EN CAPTION
-        caption = (
-            f"🔥 {prod['nombre'].upper()}\n\n"
-            f"✨ {frase_ia}\n\n"
-            f"Un nuevo nivel de diseño y funcionalidad llega a DarpePro. 🚀\n\n"
-            f"🛒 Adquiérelo aquí:\n"
-            f"{prod['url']}\n\n"
-            f"#DarpePro #Exclusivo #TechStyle #Design"
-        )
+        # 4️⃣ Procesamiento y Publicación
+        st.write("🛠️ Finalizando diseño...")
+        url_final = aplicar_plantilla_y_texto(url_ia, prod, frase_ia)
 
-        # 6️⃣ Publicar
-        resultado = publicar_en_instagram(
-            url_final,
-            caption,
-            st.secrets["FB_ACCESS_TOKEN"],
-            st.secrets["INSTAGRAM_ID"]
-        )
+        if url_final:
+            caption = (
+                f"🔥 {prod['nombre'].upper()}\n\n"
+                f"✨ {frase_ia}\n\n"
+                f"Consigue el tuyo en el enlace de la bio. 🚀\n"
+                f"🛒 {prod['url']}\n\n"
+                f"#DarpePro #IA #TechLuxury"
+            )
 
-        if isinstance(resultado, dict) and "id" in resultado:
-            st.success("✅ ¡Publicado correctamente!")
-        else:
-            st.error(f"Error al publicar: {resultado}")
+            resultado = publicar_en_instagram(
+                url_final,
+                caption,
+                st.secrets["FB_ACCESS_TOKEN"],
+                st.secrets["INSTAGRAM_ID"]
+            )
 
-        status.update(label="✅ Proceso completado", state="complete")
+            if isinstance(resultado, dict) and "id" in resultado:
+                st.success("✅ ¡Publicado en Instagram!")
+            else:
+                st.error("Fallo en la publicación final.")
+
+        status.update(label="✅ Campaña Completada", state="complete")
