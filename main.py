@@ -64,7 +64,7 @@ FRASE: texto | ESCENARIO: texto
         )
 
         img_res = client.images.generate(
-            model="gpt-image-1",
+            model="gpt-image-1.5",
             prompt=prompt_final,
             size="1024x1024",
             quality="hd" # Manteniendo HD para máxima nitidez
@@ -104,4 +104,5 @@ FRASE: texto | ESCENARIO: texto
             st.error(f"Error al publicar: {resultado}")
 
         status.update(label="✅ Proceso completado", state="complete")
+
 
