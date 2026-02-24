@@ -61,9 +61,10 @@ if st.session_state.ejecutando:
                     publicar_en_instagram(url_final, caption, st.secrets["FB_ACCESS_TOKEN"], st.secrets["INSTAGRAM_ID"])
                     st.success(f"✅ Publicado: {prod['nombre']}")
             
-            proxima = datetime.now() + timedelta(hours=20)
+            proxima = datetime.now() + timedelta(hours=72000)
             status.update(label=f"Próxima publicación: {proxima.strftime('%H:%M:%S')}", state="complete")
         
         # Espera de 20 horas
         time.sleep(60)
         st.rerun()
+
