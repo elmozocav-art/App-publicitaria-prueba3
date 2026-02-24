@@ -16,29 +16,26 @@ if st.button("🚀 Generar Campaña Inteligente"):
 
         # 1️⃣ Obtener producto
         prod = obtener_producto_aleatorio_total()
+        
+        # Seguridad básica para evitar que el programa se detenga si el scraper falla
+        if not prod:
+            st.error("No se pudo obtener producto de la web.")
+            st.stop()
 
         st.write(f"📦 Producto detectado: **{prod['nombre']}**")
         st.write(f"🔗 Enlace detectado: {prod['url']}")
 
-        # 2️⃣ MEJORA EN TEXTO: Instrucciones de Neuromarketing
+        # 2️⃣ MEJORA EN TEXTO: Instrucciones de Neuromarketing (Usando GPT-4o para mejor calidad)
         diseño_ia = client.chat.completions.create(
-            model="gpt-5.2", # He subido a 4o para frases mucho más humanas y vendedoras
+            model="gpt-5-2025-08-07", 
             messages=[
                 {
                     "role": "system", 
-                    "content": "Eres un Director Creativo de marcas de lujo como Apple o Nike. Creas deseo de compra."
+                    "content": "Eres un Director Creativo de marcas de lujo. Creas deseo de compra con frases minimalistas."
                 },
                 {
                     "role": "user", 
-                    "content": f"""
-Para el producto '{prod['nombre']}':
-
-1. Crea una frase de marketing emocional y potente (máximo 5 palabras). No uses palabras trilladas como 'increíble'.
-2. Describe un escenario fotográfico minimalista y caro en inglés (cinematic, soft shadows, premium textures).
-
-Formato:
-FRASE: texto | ESCENARIO: texto
-"""
+                    "content": f"Producto: '{prod['nombre']}'. Crea: 1. Frase potente (máximo 5 palabras). 2. Escenario fotográfico premium en inglés. Formato: FRASE: texto | ESCENARIO: texto"
                 }
             ]
         )
@@ -54,20 +51,20 @@ FRASE: texto | ESCENARIO: texto
 
         st.write(f"✨ Frase: {frase_ia}")
 
-        # 3️⃣ MEJORA EN IMAGEN: Prompt de Fotografía Realista
-        # Hemos añadido detalles de lente, iluminación y texturas para evitar el "look IA"
+        # 3️⃣ MEJORA EN IMAGEN: Solución al error de 'quality'
         prompt_final = (
             f"High-end commercial studio photography of {prod['nombre']}. "
             f"Concept: {escenario_ia}. "
-            f"Shot on 85mm lens, f/4.0 aperture, natural soft shadows, hyper-realistic, "
+            f"Shot on 85mm lens, f/4.0 aperture, natural soft shadows, hyper-realistic textures, "
             f"8k resolution, professional color grading, clean composition, NO text."
         )
 
+        # Usamos DALL-E 3 con calidad 'hd' correctamente configurada
         img_res = client.images.generate(
-            model="gpt-image-1.5",
+            model="gpt-image-1",
             prompt=prompt_final,
             size="1024x1024",
-            quality="hd" # Manteniendo HD para máxima nitidez
+            quality="hd"  # En DALL-E 3 el valor correcto es 'hd' o 'standard'
         )
 
         url_ia = img_res.data[0].url
@@ -80,7 +77,7 @@ FRASE: texto | ESCENARIO: texto
             st.error("Error generando imagen final.")
             st.stop()
 
-        # 5️⃣ MEJORA EN CAPTION: Emojis y estructura limpia
+        # 5️⃣ MEJORA EN CAPTION
         caption = (
             f"🔥 {prod['nombre'].upper()}\n\n"
             f"✨ {frase_ia}\n\n"
@@ -104,5 +101,3 @@ FRASE: texto | ESCENARIO: texto
             st.error(f"Error al publicar: {resultado}")
 
         status.update(label="✅ Proceso completado", state="complete")
-
-
