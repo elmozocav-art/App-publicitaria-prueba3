@@ -1,70 +1,70 @@
 import streamlit as st
 import requests
 import base64
+import qrcode
 from io import BytesIO
 from PIL import Image, ImageDraw, ImageFont, ImageChops, ImageOps
 
 def aplicar_plantilla_y_texto_base64(img_base64, info_producto, frase_ia):
     try:
-        # 1️⃣ Decodificar la imagen de la IA (Base64 como vimos en el video)
+        # 1️⃣ Decodificar Base64 (Tutorial gpt-image-1)
         img_data = base64.b64decode(img_base64)
         img_ia = Image.open(BytesIO(img_data)).convert("RGB")
         
         # 2️⃣ Cargar plantilla DarpePro
-        plantilla = Image.open("Plantilla DarpePRO.jpeg").convert("RGB")
+        try:
+            plantilla = Image.open("Plantilla DarpePRO.jpeg").convert("RGB")
+        except:
+            st.error("❌ No se encontró 'Plantilla DarpePRO.jpeg'")
+            plantilla = Image.new("RGB", (1080, 1080), (20, 20, 20))
+
         ancho, alto = plantilla.size
         
-        # 3️⃣ Integrar imagen IA con la plantilla
+        # 3️⃣ Integración de imagen
         fondo_ia = ImageOps.fit(img_ia, (ancho, alto), Image.LANCZOS)
         imagen_final = ImageChops.multiply(fondo_ia, plantilla)
         
-        # 4️⃣ Crear Capa de Diseño (Banner inferior)
-        overlay = Image.new('RGBA', (ancho, alto), (0, 0, 0, 0))
-        draw_overlay = ImageDraw.Draw(overlay)
+        # 4️⃣ Generar Código QR del producto
+        qr = qrcode.QRCode(box_size=4, border=1)
+        qr.add_data(info_producto.get('url', 'https://darpepro.com'))
+        qr.make(fit=True)
+        qr_img = qr.make_image(fill_color="black", back_color="white").convert('RGB')
+        qr_img = qr_img.resize((140, 140)) # Tamaño discreto
+
+        # Pegar QR en esquina inferior derecha
+        imagen_final.paste(qr_img, (ancho - 170, alto - 170))
         
-        # Dibujamos un banner negro semi-transparente abajo
-        banner_alto = 220
-        draw_overlay.rectangle(
-            [0, alto - banner_alto, ancho, alto], 
-            fill=(0, 0, 0, 160) # Negro con transparencia
-        )
-        
-        # Combinar el banner con la imagen principal
-        imagen_final = Image.alpha_composite(imagen_final.convert('RGBA'), overlay).convert('RGB')
         draw = ImageDraw.Draw(imagen_final)
 
-        # 5️⃣ Tipografías
+        # 5️⃣ Fuentes
         font_path = "/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf"
         try:
-            f_nombre = ImageFont.truetype(font_path, 65)
-            f_frase = ImageFont.truetype(font_path, 40)
-            f_cta = ImageFont.truetype(font_path, 30)
+            f_nombre = ImageFont.truetype(font_path, 75)
+            f_frase = ImageFont.truetype(font_path, 45)
+            f_cta = ImageFont.truetype(font_path, 25)
         except:
             f_nombre = f_frase = f_cta = ImageFont.load_default()
 
-        # 6️⃣ Posicionamiento de Textos en el Banner
-        # Nombre del Producto (Arriba en el banner)
-        nombre = info_producto.get('nombre', 'DARPEPRO SELECTION').upper()
-        draw.text((ancho // 2, alto - 170), nombre, font=f_nombre, fill="#FFFFFF", anchor="mm")
+        # 6️⃣ Textos
+        nombre = info_producto.get('nombre', 'DARPEPRO').upper()
+        # Nombre centrado arriba del todo o según tu plantilla
+        draw.text((ancho // 2, alto - 350), nombre, font=f_nombre, fill="white", anchor="mm")
+        draw.text((ancho // 2, alto - 280), frase_ia, font=f_frase, fill="#FFD700", anchor="mm")
         
-        # Frase IA (Debajo del nombre)
-        draw.text((ancho // 2, alto - 100), frase_ia, font=f_frase, fill="#FFD700", anchor="mm") # Dorado para resaltar
-        
-        # Enlace/CTA (Pie del banner)
-        link_corto = info_producto.get('url', 'www.darpepro.com').replace("https://", "").replace("www.", "")
-        draw.text((ancho // 2, alto - 45), f"DISPONIBLE EN: {link_corto}", font=f_cta, fill="#AAAAAA", anchor="mm")
+        # Etiqueta bajo el QR
+        draw.text((ancho - 100, alto - 25), "ESCANEA Y COMPRA", font=f_cta, fill="white", anchor="mm")
 
-        # 7️⃣ Exportar y Subir
+        # 7️⃣ Guardado y subida a IMGBB
         buffer = BytesIO()
         imagen_final.save(buffer, format="JPEG", quality=95)
         buffer.seek(0)
 
         api_key = st.secrets["IMGBB_API_KEY"]
-        files = {"image": ("publicacion_darpe.jpg", buffer)}
+        files = {"image": ("post_final.jpg", buffer)}
         res_imgbb = requests.post(f"https://api.imgbb.com/1/upload?key={api_key}", files=files)
         
         return res_imgbb.json()["data"]["url"]
 
     except Exception as e:
-        st.error(f"⚠️ Error en el nuevo diseño: {e}")
+        st.error(f"⚠️ Error en editor: {e}")
         return None
