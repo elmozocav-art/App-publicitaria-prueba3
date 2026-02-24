@@ -22,7 +22,7 @@ if st.button("🚀 Generar Campaña Inteligente"):
 
         # 2️⃣ MEJORA EN TEXTO: Instrucciones de Neuromarketing
         diseño_ia = client.chat.completions.create(
-            model="gpt-4o", # He subido a 4o para frases mucho más humanas y vendedoras
+            model="gpt-5.2", # He subido a 4o para frases mucho más humanas y vendedoras
             messages=[
                 {
                     "role": "system", 
@@ -64,7 +64,7 @@ FRASE: texto | ESCENARIO: texto
         )
 
         img_res = client.images.generate(
-            model="dall-e-3",
+            model="gpt-image-1",
             prompt=prompt_final,
             size="1024x1024",
             quality="hd" # Manteniendo HD para máxima nitidez
@@ -104,3 +104,4 @@ FRASE: texto | ESCENARIO: texto
             st.error(f"Error al publicar: {resultado}")
 
         status.update(label="✅ Proceso completado", state="complete")
+
