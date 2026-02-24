@@ -5,25 +5,31 @@ import qrcode
 from io import BytesIO
 from PIL import Image, ImageDraw, ImageFont, ImageChops, ImageOps
 
-def aplicar_plantilla_y_texto_base64(img_base64, info_producto, frase_ia):
+def procesar_imagen_auto(dato_ia, info_producto, frase_ia):
     try:
-        # 1. Desencriptar el Base64 (Método del código anterior)
-        img_data = base64.b64decode(img_base64)
-        img_ia = Image.open(BytesIO(img_data)).convert("RGB")
+        # A. Detectar y obtener la imagen (URL o Base64)
+        if str(dato_ia).startswith('http'):
+            # Es una URL
+            res = requests.get(dato_ia, timeout=15)
+            img_ia = Image.open(BytesIO(res.content)).convert("RGB")
+        else:
+            # Es Base64 (Desencriptación automática)
+            img_data = base64.b64decode(dato_ia)
+            img_ia = Image.open(BytesIO(img_data)).convert("RGB")
         
-        # 2. Cargar Plantilla
+        # B. Cargar Plantilla
         plantilla = Image.open("Plantilla DarpePRO.jpeg").convert("RGB")
         ancho, alto = plantilla.size
         
-        # 3. Mezcla de imagen e IA
+        # C. Mezclar Imagen e IA
         fondo_ia = ImageOps.fit(img_ia, (ancho, alto), Image.LANCZOS)
         imagen_final = ImageChops.multiply(fondo_ia, plantilla)
         
-        # 4. QR con el enlace del producto (El nuevo método que pediste)
+        # D. Generar QR del producto (Tu nuevo método de enlace)
         qr = qrcode.make(info_producto.get('url', 'https://darpepro.com')).convert('RGB').resize((150, 150))
         imagen_final.paste(qr, (ancho - 180, alto - 180))
         
-        # 5. Textos
+        # E. Textos
         draw = ImageDraw.Draw(imagen_final)
         try:
             font = ImageFont.truetype("/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf", 60)
@@ -33,7 +39,7 @@ def aplicar_plantilla_y_texto_base64(img_base64, info_producto, frase_ia):
         draw.text((ancho // 2, alto - 300), info_producto['nombre'].upper(), font=font, fill="white", anchor="mm")
         draw.text((ancho // 2, alto - 230), frase_ia, font=font, fill="#FFD700", anchor="mm")
 
-        # 6. Subir a IMGBB
+        # F. Subir a IMGBB
         buf = BytesIO()
         imagen_final.save(buf, format="JPEG")
         buf.seek(0)
