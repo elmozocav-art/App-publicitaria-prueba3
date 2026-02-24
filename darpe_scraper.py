@@ -4,49 +4,42 @@ import random
 
 def obtener_producto_aleatorio_total():
     base_url = "https://darpepro.com"
-    productos_totales = []
 
     headers = {
         "User-Agent": "Mozilla/5.0"
     }
 
     try:
-        page = 1
+        url = f"{base_url}/products.json?limit=250"
+        response = requests.get(url, headers=headers, timeout=10)
 
-        # Intentamos traer hasta 5 páginas (ajustable)
-        while page <= 5:
-            url = f"{base_url}/products.json?limit=250&page={page}"
-            response = requests.get(url, headers=headers, timeout=10)
-
-            if response.status_code != 200:
-                break
-
+        if response.status_code == 200:
             data = response.json()
             productos = data.get("products", [])
 
-            if not productos:
-                break
+            if productos:
+                producto = random.choice(productos)
 
-            productos_totales.extend(productos)
-            page += 1
+                nombre = producto.get("title", "Producto DarpePro")
+                handle = producto.get("handle")
 
-        if not productos_totales:
-            print("No se encontraron productos en JSON.")
-            return None
+                if handle:
+                    url_producto = f"{base_url}/products/{handle}"
+                else:
+                    url_producto = base_url
 
-        producto = random.choice(productos_totales)
+                return {
+                    "nombre": nombre,
+                    "url": url_producto
+                }
 
-        nombre = producto.get("title")
-        handle = producto.get("handle")
-
-        url_producto = f"{base_url}/products/{handle}"
-
-        return {
-            "nombre": nombre,
-            "url": url_producto
-        }
+        print("No se pudieron obtener productos reales.")
 
     except Exception as e:
         print("Error scraper:", e)
-        return None
 
+    # 🔥 FALLBACK SEGURO (Nunca devuelve None)
+    return {
+        "nombre": "Producto Destacado DarpePro",
+        "url": base_url
+    }
