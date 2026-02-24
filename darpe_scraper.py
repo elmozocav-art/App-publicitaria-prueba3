@@ -1,26 +1,52 @@
 import requests
-from bs4 import BeautifulSoup
 import random
+
 
 def obtener_producto_aleatorio_total():
     base_url = "https://darpepro.com"
-    collections_url = f"{base_url}/collections/all"
-    
-    try:
-        headers = {"User-Agent": "Mozilla/5.0"}
-        response = requests.get(collections_url, headers=headers)
-        soup = BeautifulSoup(response.text, 'html.parser')
-        
-        productos = [a['href'] for a in soup.find_all('a', href=True) if "/products/" in a['href']]
-        productos = list(set(productos))
-        
-        if not productos:
-            return {"nombre": "Gadget Pro", "url": base_url}
+    productos_totales = []
 
-        link_final = random.choice(productos)
-        url_completa = base_url + link_final if link_final.startswith('/') else link_final
-        nombre_limpio = link_final.split('/')[-1].replace('-', ' ').title()
-        
-        return {"nombre": nombre_limpio, "url": url_completa}
-    except:
-        return {"nombre": "Producto DarpePro", "url": base_url}
+    headers = {
+        "User-Agent": "Mozilla/5.0"
+    }
+
+    try:
+        page = 1
+
+        # Intentamos traer hasta 5 páginas (ajustable)
+        while page <= 5:
+            url = f"{base_url}/products.json?limit=250&page={page}"
+            response = requests.get(url, headers=headers, timeout=10)
+
+            if response.status_code != 200:
+                break
+
+            data = response.json()
+            productos = data.get("products", [])
+
+            if not productos:
+                break
+
+            productos_totales.extend(productos)
+            page += 1
+
+        if not productos_totales:
+            print("No se encontraron productos en JSON.")
+            return None
+
+        producto = random.choice(productos_totales)
+
+        nombre = producto.get("title")
+        handle = producto.get("handle")
+
+        url_producto = f"{base_url}/products/{handle}"
+
+        return {
+            "nombre": nombre,
+            "url": url_producto
+        }
+
+    except Exception as e:
+        print("Error scraper:", e)
+        return None
+
