@@ -1,6 +1,6 @@
 import streamlit as st
 from darpe_scraper import obtener_producto_aleatorio_total
-from editor_grafico import aplicar_plantilla_y_texto_base64
+from editor_grafico import procesar_imagen_auto
 from instagram_bot import publicar_en_instagram
 from openai import OpenAI
 
@@ -17,51 +17,46 @@ if st.button("🚀 Generar Campaña Inteligente"):
 
         # 2. IA de Texto
         frase_ia = "Innovación en cada detalle"
-        escenario_ia = "Modern luxury studio, cinematic lighting"
         try:
-            diseño_ia = client.chat.completions.create(
+            res_txt = client.chat.completions.create(
                 model="gpt-4o",
                 messages=[{"role": "user", "content": f"Producto: {prod['nombre']}. FRASE: (5 palabras) | ESCENARIO: (inglés)."}]
-            )
-            res = diseño_ia.choices[0].message.content
-            if "|" in res:
-                frase_ia = res.split("|")[0].replace("FRASE:", "").strip()
-                escenario_ia = res.split("|")[1].replace("ESCENARIO:", "").strip()
+            ).choices[0].message.content
+            if "|" in res_txt:
+                frase_ia = res_txt.split("|")[0].replace("FRASE:", "").strip()
         except:
-            st.warning("⚠️ Aviso en GPT: Usando valores por defecto.")
+            st.warning("⚠️ Usando textos por defecto.")
 
-        # 3. Generar Imagen (Base64 puro, sin parámetros extra)
-        st.write("📸 Generando imagen (Base64)...")
-        img_base64 = None
+        # 3. Generar Imagen (Detección automática de formato)
+        st.write("📸 Generando imagen profesional...")
+        img_data_ia = None
         try:
-            # Quitamos 'background' para evitar el Error 400
+            # NO usamos 'response_format' ni 'background' para evitar el Error 400
             img_res = client.images.generate(
                 model="gpt-image-1",
-                prompt=f"Professional photo of {prod['nombre']}, {escenario_ia}",
+                prompt=f"Professional luxury photo of {prod['nombre']}",
                 size="1024x1024",
-                quality="high",
-                response_format="b64_json" # Forzamos el formato que usaba el código anterior
+                quality="high"
             )
             
-            # Verificamos la existencia de datos para evitar 'NoneType'
-            if img_res.data and img_res.data[0].b64_json:
-                img_base64 = img_res.data[0].b64_json
-                st.write("✅ Datos recibidos correctamente.")
-            else:
-                st.error("⚠️ OpenAI no devolvió datos Base64.")
+            # Verificamos qué nos envió la API para evitar el error 'NoneType'
+            if img_res.data:
+                # Si envió URL, la usamos. Si envió Base64 (b64_json), también.
+                img_data_ia = getattr(img_res.data[0], 'url', None) or getattr(img_res.data[0], 'b64_json', None)
+            
+            if not img_data_ia:
+                st.error("⚠️ La IA no devolvió datos válidos (URL/Base64).")
         except Exception as e:
             st.error(f"❌ Error en la API: {e}")
 
-        # 4. Procesar y Publicar
-        if img_base64:
+        # 4. Procesar con el nuevo Editor Auto
+        if img_data_ia:
             st.write("🛠️ Aplicando marca y QR...")
-            # Usamos la función que ya tenías para Base64
-            url_final = aplicar_plantilla_y_texto_base64(img_base64, prod, frase_ia)
+            url_final = procesar_imagen_auto(img_data_ia, prod, frase_ia)
             
             if url_final:
-                caption = f"✨ {frase_ia}\n\n🛍️ {prod['nombre'].upper()}\n🛒 {prod['url']}\n👉 ¡Escanea el QR para comprar!"
+                caption = f"✨ {frase_ia}\n\n🛍️ {prod['nombre'].upper()}\n🛒 {prod['url']}\n👉 Escanea el QR para comprar!"
                 publicar_en_instagram(url_final, caption, st.secrets["FB_ACCESS_TOKEN"], st.secrets["INSTAGRAM_ID"])
                 st.success("✅ ¡Campaña publicada!")
         
         status.update(label="Proceso terminado", state="complete")
-
