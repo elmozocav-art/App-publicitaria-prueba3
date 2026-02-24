@@ -1,28 +1,27 @@
 import streamlit as st
 import requests
+import base64
 import qrcode
 from io import BytesIO
 from PIL import Image, ImageDraw, ImageFont, ImageChops, ImageOps
 
-def aplicar_plantilla_y_texto(url_ia, info_producto, frase_ia):
+def aplicar_plantilla_y_texto_base64(img_base64, info_producto, frase_ia):
     try:
-        # 1. Descargar imagen
-        res = requests.get(url_ia, timeout=15)
-        img_ia = Image.open(BytesIO(res.content)).convert("RGB")
+        # 1. Desencriptar el Base64 (Método del código anterior)
+        img_data = base64.b64decode(img_base64)
+        img_ia = Image.open(BytesIO(img_data)).convert("RGB")
         
-        # 2. Plantilla
+        # 2. Cargar Plantilla
         plantilla = Image.open("Plantilla DarpePRO.jpeg").convert("RGB")
         ancho, alto = plantilla.size
         
-        # 3. Mezcla
+        # 3. Mezcla de imagen e IA
         fondo_ia = ImageOps.fit(img_ia, (ancho, alto), Image.LANCZOS)
         imagen_final = ImageChops.multiply(fondo_ia, plantilla)
         
-        # 4. QR del Enlace (Esto es lo que pediste para el producto)
-        qr = qrcode.QRCode(box_size=4, border=1)
-        qr.add_data(info_producto.get('url', 'https://darpepro.com'))
-        qr_img = qr.make_image(fill_color="black", back_color="white").convert('RGB').resize((150, 150))
-        imagen_final.paste(qr_img, (ancho - 180, alto - 180))
+        # 4. QR con el enlace del producto (El nuevo método que pediste)
+        qr = qrcode.make(info_producto.get('url', 'https://darpepro.com')).convert('RGB').resize((150, 150))
+        imagen_final.paste(qr, (ancho - 180, alto - 180))
         
         # 5. Textos
         draw = ImageDraw.Draw(imagen_final)
