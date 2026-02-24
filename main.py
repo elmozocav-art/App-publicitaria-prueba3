@@ -1,6 +1,6 @@
 import streamlit as st
 from darpe_scraper import obtener_producto_aleatorio_total
-from editor_grafico import aplicar_plantilla_y_texto_base64
+from editor_grafico import aplicar_plantilla_y_texto
 from instagram_bot import publicar_en_instagram
 from openai import OpenAI
 
@@ -12,14 +12,15 @@ st.title("🎬 Director Creativo DarpePro")
 if st.button("🚀 Generar Campaña Inteligente"):
     with st.status("🤖 IA trabajando...", expanded=True) as status:
 
-        # 1️⃣ Producto
+        # 1️⃣ Obtener Producto
         prod = obtener_producto_aleatorio_total()
         if not prod:
-            prod = {"nombre": "Producto DarpePro", "url": "https://darpepro.com"}
+            # Respaldo si el scraper falla
+            prod = {"nombre": "DarpePro Premium", "url": "https://darpepro.com"}
 
         # 2️⃣ Texto GPT-4o
-        frase_ia = "Diseño que marca la diferencia"
-        escenario_ia = "High-end product photography, minimalist luxury"
+        frase_ia = "Excelencia en cada detalle"
+        escenario_ia = "Luxury product photography, studio background"
         try:
             diseño_ia = client.chat.completions.create(
                 model="gpt-4o",
@@ -29,38 +30,41 @@ if st.button("🚀 Generar Campaña Inteligente"):
             if "|" in res:
                 frase_ia = res.split("|")[0].replace("FRASE:", "").strip()
                 escenario_ia = res.split("|")[1].replace("ESCENARIO:", "").strip()
-        except:
-            st.warning("⚠️ Usando textos de reserva.")
+        except Exception as e:
+            st.warning(f"⚠️ Aviso en GPT: {e}. Usando valores por defecto.")
 
-        # 3️⃣ Imagen GPT-Image-1 (Calidad High + Base64)
-        st.write("📸 Generando imagen técnica...")
-        img_base64 = None
+        # 3️⃣ Generar Imagen (CORRECCIÓN ERROR 400 Y NONETYPE)
+        st.write("📸 Generando imagen profesional...")
+        url_ia = None
         try:
-            # Según el video: gpt-image-1 no usa URL, usa b64_json
+            # Eliminamos 'response_format' que causaba el Error 400
             img_res = client.images.generate(
                 model="gpt-image-1",
-                prompt=f"Official studio photo of {prod['nombre']}, {escenario_ia}, 8k resolution.",
+                prompt=f"Professional photo of {prod['nombre']}, {escenario_ia}",
                 size="1024x1024",
-                quality="high", # Valor correcto según logs
-                response_format="b64_json" # Forzamos el formato Base64 visto en el video
+                quality="high" # Valor correcto según tus logs
             )
-            img_base64 = img_res.data[0].b64_json
-            st.write("✅ Imagen generada correctamente.")
+            
+            # Solo asignamos si la respuesta es exitosa para evitar el 'NoneType'
+            if img_res.data and img_res.data[0].url:
+                url_ia = img_res.data[0].url
+                st.write("✅ Imagen generada exitosamente.")
+            else:
+                st.error("⚠️ OpenAI no devolvió una URL válida.")
         except Exception as e:
             st.error(f"❌ Error en la IA de imagen: {e}")
 
-        # 4️⃣ Procesamiento Final y Publicación
-        if img_base64:
-            st.write("🛠️ Aplicando QR y marca DarpePro...")
-            url_final = aplicar_plantilla_y_texto_base64(img_base64, prod, frase_ia)
+        # 4️⃣ Solo procedemos si tenemos una imagen válida
+        if url_ia:
+            st.write("🛠️ Aplicando QR y marca...")
+            url_final = aplicar_plantilla_y_texto(url_ia, prod, frase_ia)
             
             if url_final:
-                # Caption optimizada con enlace limpio
                 caption = (
-                    f"🔥 {prod['nombre'].upper()}\n"
                     f"✨ {frase_ia}\n\n"
+                    f"🛍️ Producto: {prod['nombre'].upper()}\n"
                     f"🛒 Consíguelo aquí: {prod['url']}\n"
-                    f"📲 O escanea el QR de la imagen!"
+                    f"👉 Escanea el QR en la foto para comprar al instante!"
                 )
                 
                 publicar_en_instagram(
@@ -69,8 +73,8 @@ if st.button("🚀 Generar Campaña Inteligente"):
                     st.secrets["FB_ACCESS_TOKEN"], 
                     st.secrets["INSTAGRAM_ID"]
                 )
-                st.success("✅ Campaña publicada con éxito.")
+                st.success("✅ Campaña publicada con enlace y QR")
             else:
-                st.error("❌ Fallo en la creación del post final.")
+                st.error("❌ El editor no pudo generar la imagen final.")
         
-        status.update(label="Campaña Finalizada", state="complete")
+        status.update(label="Proceso terminado", state="complete")
