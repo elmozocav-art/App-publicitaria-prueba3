@@ -1,6 +1,6 @@
 import streamlit as st
 from darpe_scraper import obtener_producto_aleatorio_total
-from editor_grafico import aplicar_plantilla_y_texto
+from editor_grafico import aplicar_plantilla_y_texto_base64
 from instagram_bot import publicar_en_instagram
 from openai import OpenAI
 
@@ -30,35 +30,38 @@ if st.button("🚀 Generar Campaña Inteligente"):
         except:
             st.warning("⚠️ Aviso en GPT: Usando valores por defecto.")
 
-        # 3. Generar Imagen (CORRECCIÓN: Sin parámetros que den Error 400)
-        st.write("📸 Generando imagen profesional...")
-        url_ia = None
+        # 3. Generar Imagen (Base64 puro, sin parámetros extra)
+        st.write("📸 Generando imagen (Base64)...")
+        img_base64 = None
         try:
-            # Quitamos 'response_format' y 'background' para evitar el Error 400
+            # Quitamos 'background' para evitar el Error 400
             img_res = client.images.generate(
                 model="gpt-image-1",
                 prompt=f"Professional photo of {prod['nombre']}, {escenario_ia}",
                 size="1024x1024",
-                quality="high" # Calidad aceptada según tus logs
+                quality="high",
+                response_format="b64_json" # Forzamos el formato que usaba el código anterior
             )
             
-            # Verificamos la URL para evitar el error 'NoneType'
-            if img_res.data and img_res.data[0].url:
-                url_ia = img_res.data[0].url
-                st.write("✅ Imagen generada correctamente.")
+            # Verificamos la existencia de datos para evitar 'NoneType'
+            if img_res.data and img_res.data[0].b64_json:
+                img_base64 = img_res.data[0].b64_json
+                st.write("✅ Datos recibidos correctamente.")
             else:
-                st.error("⚠️ OpenAI no devolvió una URL válida.")
+                st.error("⚠️ OpenAI no devolvió datos Base64.")
         except Exception as e:
             st.error(f"❌ Error en la API: {e}")
 
         # 4. Procesar y Publicar
-        if url_ia:
+        if img_base64:
             st.write("🛠️ Aplicando marca y QR...")
-            url_final = aplicar_plantilla_y_texto(url_ia, prod, frase_ia)
+            # Usamos la función que ya tenías para Base64
+            url_final = aplicar_plantilla_y_texto_base64(img_base64, prod, frase_ia)
             
             if url_final:
-                caption = f"✨ {frase_ia}\n\n🛍️ {prod['nombre'].upper()}\n🛒 {prod['url']}\n👉 Escanea el QR para comprar!"
+                caption = f"✨ {frase_ia}\n\n🛍️ {prod['nombre'].upper()}\n🛒 {prod['url']}\n👉 ¡Escanea el QR para comprar!"
                 publicar_en_instagram(url_final, caption, st.secrets["FB_ACCESS_TOKEN"], st.secrets["INSTAGRAM_ID"])
                 st.success("✅ ¡Campaña publicada!")
         
         status.update(label="Proceso terminado", state="complete")
+
