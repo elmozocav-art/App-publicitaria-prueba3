@@ -3,5 +3,5 @@ Pillow
 openai
 requests
 beautifulsoup4
-pip install qrcode
 qrcode
+
