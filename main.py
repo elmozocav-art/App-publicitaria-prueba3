@@ -1,61 +1,62 @@
 import streamlit as st
-import time
-from datetime import datetime, timedelta
 from darpe_scraper import obtener_producto_aleatorio_total
-from editor_grafico import aplicar_plantilla_y_texto_base64
+from editor_grafico import procesar_imagen_auto
 from instagram_bot import publicar_en_instagram
 from openai import OpenAI
 
-st.set_page_config(page_title="DarpePro Auto-Bot", layout="centered")
+st.set_page_config(page_title="DarpePro AI-Director", layout="centered")
 client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
 
-st.title("🎬 Director Automático DarpePro")
+st.title("🎬 Director Creativo DarpePro")
 
-if "bot_activo" not in st.session_state:
-    st.session_state.bot_activo = False
+if st.button("🚀 Generar Campaña Inteligente"):
+    with st.status("🤖 IA trabajando...", expanded=True) as status:
 
-col1, col2 = st.columns(2)
-with col1:
-    if st.button("🚀 Iniciar Automatización (20h)"):
-        st.session_state.bot_activo = True
-with col2:
-    if st.button("🛑 Detener Bot"):
-        st.session_state.bot_activo = False
-
-while st.session_state.bot_activo:
-    with st.status("🤖 Ciclo activo...", expanded=True) as status:
-        # 1. Obtener producto real
+        # 1. Producto
         prod = obtener_producto_aleatorio_total() or {"nombre": "DarpePro Premium", "url": "https://darpepro.com"}
 
-        # 2. Generar Imagen (Base64)
-        # Sin 'response_format' ni 'background' para evitar el Error 400
-        st.write(f"📸 Generando imagen para: {prod['nombre']}")
-        img_base64 = None
+        # 2. IA de Texto
+        frase_ia = "Innovación en cada detalle"
         try:
+            res_txt = client.chat.completions.create(
+                model="gpt-4o",
+                messages=[{"role": "user", "content": f"Producto: {prod['nombre']}. FRASE: (5 palabras) | ESCENARIO: (inglés)."}]
+            ).choices[0].message.content
+            if "|" in res_txt:
+                frase_ia = res_txt.split("|")[0].replace("FRASE:", "").strip()
+        except:
+            st.warning("⚠️ Usando textos por defecto.")
+
+        # 3. Generar Imagen (Detección automática de formato)
+        st.write("📸 Generando imagen profesional...")
+        img_data_ia = None
+        try:
+            # NO usamos 'response_format' ni 'background' para evitar el Error 400
             img_res = client.images.generate(
                 model="gpt-image-1",
-                prompt=f"Professional luxury photo of {prod['nombre']}, studio background",
+                prompt=f"Professional luxury photo of {prod['nombre']}",
                 size="1024x1024",
                 quality="high"
             )
-            # Extraemos los datos codificados según tu modelo
+            
+            # Verificamos qué nos envió la API para evitar el error 'NoneType'
             if img_res.data:
-                img_base64 = getattr(img_res.data[0], 'b64_json', None)
+                # Si envió URL, la usamos. Si envió Base64 (b64_json), también.
+                img_data_ia = getattr(img_res.data[0], 'url', None) or getattr(img_res.data[0], 'b64_json', None)
+            
+            if not img_data_ia:
+                st.error("⚠️ La IA no devolvió datos válidos (URL/Base64).")
         except Exception as e:
-            st.error(f"❌ Error API: {e}")
+            st.error(f"❌ Error en la API: {e}")
 
-        # 3. Procesar y Publicar
-        if img_base64:
-            # Enviamos el producto para usar su NOMBRE REAL en el diseño
-            url_final = aplicar_plantilla_y_texto_base64(img_base64, prod)
+        # 4. Procesar con el nuevo Editor Auto
+        if img_data_ia:
+            st.write("🛠️ Aplicando marca y QR...")
+            url_final = procesar_imagen_auto(img_data_ia, prod, frase_ia)
             
             if url_final:
-                caption = f"🔥 {prod['nombre'].upper()}\n\n🛒 Compra aquí: {prod['url']}"
+                caption = f"✨ {frase_ia}\n\n🛍️ {prod['nombre'].upper()}\n🛒 {prod['url']}\n👉 Escanea el QR para comprar!"
                 publicar_en_instagram(url_final, caption, st.secrets["FB_ACCESS_TOKEN"], st.secrets["INSTAGRAM_ID"])
-                st.success(f"✅ Publicado: {prod['nombre']}")
+                st.success("✅ ¡Campaña publicada!")
         
-        proxima = datetime.now() + timedelta(hours=20)
-        status.update(label=f"Próxima publicación: {proxima.strftime('%H:%M:%S')}", state="complete")
-    
-    time.sleep(72000) # Espera exacta de 20 horas
-    st.rerun()
+        status.update(label="Proceso terminado", state="complete")
